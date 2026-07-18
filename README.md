@@ -26,9 +26,12 @@ providers.
 ```bash
 pnpm install          # installs deps and generates the Prisma client (postinstall)
 pnpm db:push          # create the SQLite schema (prisma/dev.db)
-pnpm db:seed          # load demo instructor, student, and courses
+pnpm db:seed          # create two demo login accounts (no courses — catalog starts empty)
 pnpm dev              # start the dev server at http://localhost:3000
 ```
+
+The catalog intentionally starts **empty** — sign in as the instructor and
+publish courses from the studio.
 
 ### Demo accounts (created by the seed)
 
