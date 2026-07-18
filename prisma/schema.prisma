@@ -1,0 +1,93 @@
+// RodzEdu database schema
+// Docs: https://pris.ly/d/prisma-schema
+//
+// Uses SQLite for local development (zero external services). For production,
+// switch `provider` to "postgresql" and point DATABASE_URL at your Postgres
+// instance (e.g. Neon, Vercel Postgres). Note: SQLite does not support native
+// enums, so role/status fields are stored as strings.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         String   @default("STUDENT") // "STUDENT" | "TEACHER"
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  courses     Course[]     @relation("InstructorCourses")
+  enrollments Enrollment[]
+}
+
+model Course {
+  id              String   @id @default(cuid())
+  title           String
+  slug            String   @unique
+  summary         String
+  description     String
+  category        String
+  imageUrl        String?
+  priceCents      Int      @default(0)
+  credits         Float    @default(0)
+  published       Boolean  @default(true)
+  instructorId    String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  instructor  User         @relation("InstructorCourses", fields: [instructorId], references: [id], onDelete: Cascade)
+  lessons     Lesson[]
+  enrollments Enrollment[]
+}
+
+model Lesson {
+  id        String   @id @default(cuid())
+  courseId  String
+  title     String
+  content   String
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  course   Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  progress LessonProgress[]
+}
+
+model Enrollment {
+  id              String   @id @default(cuid())
+  userId          String
+  courseId        String
+  status          String   @default("ACTIVE") // "PENDING" | "ACTIVE"
+  stripeSessionId String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course   Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  progress LessonProgress[]
+
+  @@unique([userId, courseId])
+}
+
+model LessonProgress {
+  id           String    @id @default(cuid())
+  enrollmentId String
+  lessonId     String
+  completed    Boolean   @default(false)
+  completedAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  enrollment Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  lesson     Lesson     @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([enrollmentId, lessonId])
+}
