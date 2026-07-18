@@ -1,0 +1,12 @@
+---
+description: RodzEdu project conventions for agents and IDE
+alwaysApply: true
+---
+
+# RodzEdu conventions
+
+- Stack: Next.js App Router, TypeScript, Tailwind CSS v4, React Compiler.
+- Keep app code under `src/app/`. Prefer Server Components; add `"use client"` only when needed.
+- Before finishing a change that touches app code, run `npm run lint` and `npm run build`.
+- Do not commit secrets, `.env*`, `.vercel/`, `node_modules/`, or `.next/`.
+- When using Next.js APIs, check `node_modules/next/dist/docs/` for this repo's installed version.
