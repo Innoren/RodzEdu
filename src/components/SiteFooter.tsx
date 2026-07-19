@@ -11,7 +11,8 @@ export async function SiteFooter() {
           <p className="font-[family-name:var(--font-display)] text-3xl">RodzEdu</p>
           <p className="mt-3 max-w-md text-sm leading-relaxed text-white/75">
             Homestudy continuing education for radiologic technologists and
-            imaging professionals — with more healthcare specialties coming soon.
+            imaging professionals — clear courses, credible credits, and support
+            you can reach by phone.
           </p>
         </div>
         <div>

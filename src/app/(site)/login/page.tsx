@@ -25,8 +25,8 @@ export default async function LoginPage({
             Log in to RodzEdu
           </h1>
           <p className="mt-4 max-w-md text-muted">
-            Sign in to access your courses, track module progress, and take CE
-            exams online.
+            Sign in to continue your coursework, track progress, and complete CE
+            exams when you&apos;re ready.
           </p>
         </div>
 

@@ -4,12 +4,12 @@ export const seedData: Database = {
   settings: {
     companyName: "RodzEdu",
     tagline:
-      "Quality radiology continuing education you can trust — starting here, expanding across healthcare.",
+      "Continuing education imaging professionals can trust — clear courses, credible credits, real support.",
     phone: "502-555-0199",
     email: "ce@rodzedu.com",
     address: "6511 Glenridge Park Place, Louisville, KY 40222",
     announcement:
-      "New radiology CE courses now open for enrollment. ARRT-accepted Category A credits.",
+      "Radiology CE now open for enrollment — Category A credits accepted for ARRT® certification & registration.",
   },
   users: [
     {

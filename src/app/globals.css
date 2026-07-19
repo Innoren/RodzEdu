@@ -231,6 +231,34 @@ a {
   border: 1px solid var(--line);
 }
 
+.trust-band {
+  background:
+    linear-gradient(180deg, #ffffff 0%, #f3f7f9 100%);
+  border-bottom: 1px solid var(--line);
+}
+
+.assurance-list {
+  display: grid;
+  gap: 0;
+  border-top: 1px solid var(--line);
+}
+
+.assurance-item {
+  margin: 0;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink);
+  font-size: 0.98rem;
+  line-height: 1.5;
+}
+
+.assurance-item::before {
+  content: "✓";
+  margin-right: 0.7rem;
+  color: var(--teal);
+  font-weight: 700;
+}
+
 .exam-shell {
   min-height: 100vh;
   background:

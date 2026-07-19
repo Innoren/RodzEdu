@@ -7,31 +7,43 @@ export default async function ContactPage() {
     <section className="section">
       <div className="section-inner max-w-3xl">
         <p className="eyebrow">We&apos;re here to help</p>
-        <h1 className="mt-2 font-[family-name:var(--font-display)] text-4xl text-navy">
-          Contact RodzEdu
+        <h1 className="mt-3 font-[family-name:var(--font-display)] text-4xl leading-tight text-navy md:text-5xl">
+          Talk with RodzEdu before — or after — you enroll
         </h1>
-        <p className="mt-4 text-muted">
-          Questions about ordering, certificates, or state CE requirements?
-          Reach our team during office hours.
+        <p className="mt-5 text-base leading-relaxed text-muted md:text-lg">
+          Unsure which course fits your renewal? Need help with an order or
+          certificate? Reach a real person during office hours.
         </p>
-        <div className="panel mt-8 grid gap-4 p-6 text-sm md:grid-cols-2">
+        <div className="mt-10 grid gap-6 border-y border-line py-8 text-sm md:grid-cols-2 md:text-base">
           <div>
-            <p className="font-semibold text-navy">Phone</p>
-            <p className="mt-1 text-muted">{settings.phone}</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-teal">
+              Phone
+            </p>
+            <p className="mt-2 text-lg font-semibold text-navy">{settings.phone}</p>
           </div>
           <div>
-            <p className="font-semibold text-navy">Email</p>
-            <p className="mt-1 text-muted">{settings.email}</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-teal">
+              Email
+            </p>
+            <p className="mt-2 text-lg font-semibold text-navy">{settings.email}</p>
           </div>
           <div>
-            <p className="font-semibold text-navy">Address</p>
-            <p className="mt-1 text-muted">{settings.address}</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-teal">
+              Address
+            </p>
+            <p className="mt-2 text-navy">{settings.address}</p>
           </div>
           <div>
-            <p className="font-semibold text-navy">Hours</p>
-            <p className="mt-1 text-muted">9am–5pm EST, Monday through Friday</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-teal">
+              Hours
+            </p>
+            <p className="mt-2 text-navy">9am–5pm EST, Monday through Friday</p>
           </div>
         </div>
+        <p className="mt-6 text-sm text-muted">
+          We do not store financial information on this website. If payment
+          verification is needed, we contact you using the phone number on your order.
+        </p>
       </div>
     </section>
   );

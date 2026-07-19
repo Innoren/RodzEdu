@@ -1,51 +1,58 @@
 import Link from "next/link";
-import { listPublishedCourses } from "@/lib/db";
+import { getSettings, listPublishedCourses } from "@/lib/db";
 import { formatMoney } from "@/lib/format";
 
 export default async function CoursesPage() {
-  const courses = await listPublishedCourses();
+  const [courses, settings] = await Promise.all([
+    listPublishedCourses(),
+    getSettings(),
+  ]);
 
   return (
     <section className="section">
       <div className="section-inner">
-        <p className="eyebrow">Homestudy catalog</p>
-        <h1 className="mt-2 font-[family-name:var(--font-display)] text-4xl text-navy md:text-5xl">
-          Choose and pay for your CE classes
+        <p className="eyebrow">Course catalog</p>
+        <h1 className="mt-3 max-w-3xl font-[family-name:var(--font-display)] text-4xl leading-tight text-navy md:text-5xl">
+          Homestudy CE with clear credits, clear pricing, and a clear exam path
         </h1>
-        <p className="mt-4 max-w-2xl text-muted">
-          Starting with radiology — radiography, mammography, CT, and more
-          imaging specialties. Enroll online and study at your pace.
+        <p className="mt-5 max-w-2xl text-base leading-relaxed text-muted md:text-lg">
+          Start with radiology — radiography, mammography, CT, and related imaging
+          specialties. Every listing shows what you&apos;re paying for before you enroll.
         </p>
 
-        <div className="mt-10 grid gap-5 md:grid-cols-2">
+        <div className="mt-6 flex flex-wrap gap-x-8 gap-y-2 text-sm text-ink/75">
+          <p>Questions? {settings.phone}</p>
+          <p>{settings.email}</p>
+          <p>Office hours 9am–5pm EST, Mon–Fri</p>
+        </div>
+
+        <div className="mt-12 divide-y divide-line border-y border-line">
           {courses.map((course) => (
-            <article key={course.id} className="panel flex flex-col p-6">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-teal">
-                    {course.category}
-                  </p>
-                  <h2 className="mt-2 font-[family-name:var(--font-display)] text-2xl text-navy">
-                    {course.title}
-                  </h2>
-                </div>
-                <p className="shrink-0 text-lg font-semibold text-accent">
-                  {formatMoney(course.priceCents)}
+            <article
+              key={course.id}
+              className="grid gap-5 py-8 md:grid-cols-[1fr_auto] md:items-center"
+            >
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-teal">
+                  {course.category} · {course.credits} CE credits · Online exam
+                  included
+                </p>
+                <h2 className="mt-2 font-[family-name:var(--font-display)] text-2xl text-navy md:text-3xl">
+                  {course.title}
+                </h2>
+                <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted md:text-base">
+                  {course.description}
                 </p>
               </div>
-              <p className="mt-3 flex-1 text-sm leading-relaxed text-muted">
-                {course.description}
-              </p>
-              <div className="mt-5 flex items-center justify-between">
-                <span className="text-sm font-semibold text-navy">
-                  {course.credits} CE credits · {course.examQuestions.length} exam
-                  questions
-                </span>
+              <div className="flex flex-wrap items-center gap-4 md:flex-col md:items-end">
+                <p className="text-2xl font-semibold text-navy">
+                  {formatMoney(course.priceCents)}
+                </p>
                 <Link
                   href={`/courses/${course.slug}`}
-                  className="btn btn-navy !px-3 !py-2 text-sm"
+                  className="btn btn-navy !px-4 !py-2.5 text-sm"
                 >
-                  View details
+                  Review & enroll
                 </Link>
               </div>
             </article>
