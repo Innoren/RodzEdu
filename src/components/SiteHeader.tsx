@@ -26,21 +26,9 @@ export async function SiteHeader() {
         </nav>
         <div className="flex items-center gap-2">
           {user ? (
-            <>
-              <Link href={dashboardPathForRole(user.role)} className="btn btn-navy !px-3 !py-2 text-sm">
-                My Portal
-              </Link>
-              {user.role === "ceo" && (
-                <a
-                  href="/ceo"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="btn btn-ghost !px-3 !py-2 text-sm"
-                >
-                  CEO Console
-                </a>
-              )}
-            </>
+            <Link href={dashboardPathForRole(user.role)} className="btn btn-navy !px-3 !py-2 text-sm">
+              My Account
+            </Link>
           ) : (
             <>
               <Link href="/login" className="btn btn-ghost !px-3 !py-2 text-sm">

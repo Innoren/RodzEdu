@@ -1,14 +1,11 @@
 import Link from "next/link";
 import { listPublishedCourses, getSettings } from "@/lib/db";
 import { formatMoney } from "@/lib/format";
-import { OpenCeoConsole } from "@/components/OpenCeoConsole";
-import { getSessionUser } from "@/lib/auth";
 
 export default async function HomePage() {
-  const [courses, settings, user] = await Promise.all([
+  const [courses, settings] = await Promise.all([
     listPublishedCourses(),
     getSettings(),
-    getSessionUser(),
   ]);
 
   return (
@@ -137,11 +134,11 @@ export default async function HomePage() {
               },
               {
                 title: "Track progress in your portal",
-                body: "Students see module completion. Teachers review every assigned learner in one place.",
+                body: "Pick up where you left off and see module completion as you work through each course.",
               },
               {
-                title: "Take your exam in a focused window",
-                body: "When you’re ready, open a dedicated exam window — no portal clutter, just your test.",
+                title: "Take your exam online",
+                body: "When you’re ready, open the exam and complete your CE test in a focused testing view.",
               },
             ].map((item, index) => (
               <div key={item.title} className="panel p-5">
@@ -161,36 +158,24 @@ export default async function HomePage() {
       </section>
 
       <section className="section bg-navy text-white">
-        <div className="section-inner grid gap-8 md:grid-cols-[1.3fr_1fr] md:items-center">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-teal-bright">
-              Built for every role
-            </p>
-            <h2 className="mt-3 font-[family-name:var(--font-display)] text-3xl md:text-4xl">
-              Students learn. Teachers monitor. Admins publish. The CEO steers.
-            </h2>
-            <p className="mt-4 max-w-xl text-white/75">
-              Role-based portals keep continuing education organized — including
-              a separate CEO management console for company-wide oversight.
-            </p>
-          </div>
-          <div className="panel bg-white/5 p-5 text-sm text-white/85">
-            <p className="font-semibold text-white">Demo portals</p>
-            <ul className="mt-3 space-y-2">
-              <li>Student: student@rodzedu.com / student123</li>
-              <li>Teacher: teacher@rodzedu.com / teacher123</li>
-              <li>Admin: admin@rodzedu.com / admin123</li>
-              <li>CEO: ceo@rodzedu.com / ceo123</li>
-            </ul>
-            {user?.role === "ceo" ? (
-              <div className="mt-5">
-                <OpenCeoConsole />
-              </div>
-            ) : (
-              <Link href="/login" className="btn btn-primary mt-5">
-                Log in to a portal
-              </Link>
-            )}
+        <div className="section-inner max-w-3xl">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-teal-bright">
+            Ready when you are
+          </p>
+          <h2 className="mt-3 font-[family-name:var(--font-display)] text-3xl md:text-4xl">
+            Earn your CE credits online — study at your pace, test when ready.
+          </h2>
+          <p className="mt-4 max-w-xl text-white/75">
+            Choose a radiology course, complete the modules, and take your exam
+            online. Questions about ordering? Call or email during office hours.
+          </p>
+          <div className="mt-8 flex flex-wrap gap-3">
+            <Link href="/courses" className="btn btn-primary">
+              Browse courses
+            </Link>
+            <Link href="/login" className="btn btn-secondary">
+              Student login
+            </Link>
           </div>
         </div>
       </section>

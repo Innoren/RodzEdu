@@ -21,7 +21,6 @@ export async function SiteFooter() {
           <div className="mt-3 flex flex-col gap-2 text-sm text-white/80">
             <Link href="/courses">Course Catalog</Link>
             <Link href="/login">Student Login</Link>
-            <Link href="/login">Teacher Login</Link>
             <Link href="/contact">Contact Us</Link>
           </div>
         </div>

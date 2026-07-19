@@ -25,18 +25,9 @@ export default async function LoginPage({
             Log in to RodzEdu
           </h1>
           <p className="mt-4 max-w-md text-muted">
-            Students track course progress and exams. Teachers monitor learners.
-            Admins upload courses. The CEO opens a dedicated management console.
+            Sign in to access your courses, track module progress, and take CE
+            exams online.
           </p>
-          <div className="panel mt-8 p-5 text-sm">
-            <p className="font-semibold text-navy">Demo accounts</p>
-            <ul className="mt-3 space-y-2 text-muted">
-              <li>student@rodzedu.com / student123</li>
-              <li>teacher@rodzedu.com / teacher123</li>
-              <li>admin@rodzedu.com / admin123</li>
-              <li>ceo@rodzedu.com / ceo123</li>
-            </ul>
-          </div>
         </div>
 
         <div className="space-y-6">
