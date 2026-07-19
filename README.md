@@ -1,36 +1,37 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# RodzEdu
 
-## Getting Started
+Continuing education platform for healthcare professionals — starting with radiology.
 
-First, run the development server:
+Inspired by professional CE experiences like [X-Ray Lady](https://x-raylady.com): clear catalog browsing, phone/email support cues, and online testing — with modern role-based portals for students, teachers, admins, and the CEO.
+
+## Features
+
+- **Public marketing site** with radiology-first course catalog
+- **Student portal** — enroll/pay, track progress, open exams
+- **Teacher portal** — overview of assigned student progress
+- **Admin portal** — upload and publish new courses + exams
+- **CEO console** — separate management window for company oversight & site settings
+- **Dedicated exam window** — exams open in their own popup/window
+- **Checkout** — Stripe Checkout when keys are configured; demo enrollment otherwise
+
+## Quick start
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Demo logins
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Role    | Email                 | Password    |
+|---------|-----------------------|-------------|
+| Student | student@rodzedu.com  | student123  |
+| Teacher | teacher@rodzedu.com  | teacher123  |
+| Admin   | admin@rodzedu.com    | admin123    |
+| CEO     | ceo@rodzedu.com      | ceo123      |
 
-## Learn More
+## Stripe (optional)
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Copy `.env.example` to `.env.local` and add Stripe keys. Without keys, “Enroll & Pay” still enrolls the student instantly for local demos.
