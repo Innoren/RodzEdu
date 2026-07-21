@@ -1,8 +1,11 @@
 import Link from "next/link";
+import { connection } from "next/server";
 import { listPublishedCourses, getSettings } from "@/lib/db";
 import { formatMoney } from "@/lib/format";
 
 export default async function HomePage() {
+  // Opt into a fresh request so Office Hours / contact details stay live.
+  await connection();
   const [courses, settings] = await Promise.all([
     listPublishedCourses(),
     getSettings(),

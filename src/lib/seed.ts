@@ -5,7 +5,7 @@ export const seedData: Database = {
     companyName: "RodzEdu",
     tagline:
       "Continuing education imaging professionals can trust — clear courses, credible credits, real support.",
-    phone: "502-555-0199",
+    phone: "",
     email: "ce@rodzedu.com",
     address: "6511 Glenridge Park Place, Louisville, KY 40222",
     announcement:

@@ -1,3 +1,4 @@
+import { get, put } from "@vercel/blob";
 import { promises as fs } from "fs";
 import path from "path";
 import { seedData } from "./seed";
@@ -10,15 +11,60 @@ import type {
   User,
 } from "./types";
 
-// On Vercel the deploy filesystem is read-only; persist runtime data in /tmp.
+// Local/dev file fallback. On Vercel, durable state lives in private Blob storage
+// so CEO settings (phone, etc.) survive cold starts.
 const DATA_DIR = process.env.VERCEL
   ? path.join("/tmp", "rodzedu-data")
   : path.join(process.cwd(), "data");
 const DB_PATH = path.join(DATA_DIR, "store.json");
+const BLOB_PATH = "rodzedu/store.json";
 
 declare global {
   // Persist runtime DB across hot reloads / warm serverless invocations.
   var __rodzeduDb: Database | undefined;
+}
+
+function hasBlobStore() {
+  return Boolean(process.env.BLOB_READ_WRITE_TOKEN);
+}
+
+async function readDbFromBlob(): Promise<Database | null> {
+  if (!hasBlobStore()) return null;
+  try {
+    const result = await get(BLOB_PATH, {
+      access: "private",
+      useCache: false,
+    });
+    if (!result || result.statusCode !== 200 || !result.stream) return null;
+    const raw = await new Response(result.stream).text();
+    return JSON.parse(raw) as Database;
+  } catch {
+    return null;
+  }
+}
+
+async function writeDbToBlob(db: Database): Promise<void> {
+  if (!hasBlobStore()) return;
+  await put(BLOB_PATH, JSON.stringify(db, null, 2), {
+    access: "private",
+    contentType: "application/json",
+    addRandomSuffix: false,
+    allowOverwrite: true,
+  });
+}
+
+async function readDbFromFile(): Promise<Database | null> {
+  try {
+    const raw = await fs.readFile(DB_PATH, "utf8");
+    return JSON.parse(raw) as Database;
+  } catch {
+    return null;
+  }
+}
+
+async function writeDbToFile(db: Database): Promise<void> {
+  await fs.mkdir(DATA_DIR, { recursive: true });
+  await fs.writeFile(DB_PATH, JSON.stringify(db, null, 2), "utf8");
 }
 
 async function ensureDb(): Promise<Database> {
@@ -26,21 +72,29 @@ async function ensureDb(): Promise<Database> {
     return globalThis.__rodzeduDb;
   }
 
-  await fs.mkdir(DATA_DIR, { recursive: true });
-  try {
-    const raw = await fs.readFile(DB_PATH, "utf8");
-    globalThis.__rodzeduDb = JSON.parse(raw) as Database;
-  } catch {
-    globalThis.__rodzeduDb = structuredClone(seedData);
-    await fs.writeFile(DB_PATH, JSON.stringify(globalThis.__rodzeduDb, null, 2), "utf8");
+  const fromBlob = await readDbFromBlob();
+  if (fromBlob) {
+    globalThis.__rodzeduDb = fromBlob;
+    return fromBlob;
   }
-  return globalThis.__rodzeduDb;
+
+  const fromFile = await readDbFromFile();
+  if (fromFile) {
+    globalThis.__rodzeduDb = fromFile;
+    await writeDbToBlob(fromFile);
+    return fromFile;
+  }
+
+  const seeded = structuredClone(seedData);
+  globalThis.__rodzeduDb = seeded;
+  await writeDbToFile(seeded);
+  await writeDbToBlob(seeded);
+  return seeded;
 }
 
 async function writeDb(db: Database): Promise<void> {
   globalThis.__rodzeduDb = db;
-  await fs.mkdir(DATA_DIR, { recursive: true });
-  await fs.writeFile(DB_PATH, JSON.stringify(db, null, 2), "utf8");
+  await Promise.all([writeDbToFile(db), writeDbToBlob(db)]);
 }
 
 export async function getDb(): Promise<Database> {
@@ -48,6 +102,15 @@ export async function getDb(): Promise<Database> {
 }
 
 export async function getSettings(): Promise<SiteSettings> {
+  // Always read settings from durable Blob when available so the public site
+  // reflects CEO changes immediately (not a stale seed /tmp copy).
+  if (hasBlobStore()) {
+    const fromBlob = await readDbFromBlob();
+    if (fromBlob) {
+      globalThis.__rodzeduDb = fromBlob;
+      return fromBlob.settings;
+    }
+  }
   const db = await ensureDb();
   return db.settings;
 }
