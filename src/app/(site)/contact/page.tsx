@@ -15,24 +15,30 @@ export default async function ContactPage() {
           certificate? Reach a real person during office hours.
         </p>
         <div className="mt-10 grid gap-6 border-y border-line py-8 text-sm md:grid-cols-2 md:text-base">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-teal">
-              Phone
-            </p>
-            <p className="mt-2 text-lg font-semibold text-navy">{settings.phone}</p>
-          </div>
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-teal">
-              Email
-            </p>
-            <p className="mt-2 text-lg font-semibold text-navy">{settings.email}</p>
-          </div>
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-teal">
-              Address
-            </p>
-            <p className="mt-2 text-navy">{settings.address}</p>
-          </div>
+          {settings.phone ? (
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-teal">
+                Phone
+              </p>
+              <p className="mt-2 text-lg font-semibold text-navy">{settings.phone}</p>
+            </div>
+          ) : null}
+          {settings.email ? (
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-teal">
+                Email
+              </p>
+              <p className="mt-2 text-lg font-semibold text-navy">{settings.email}</p>
+            </div>
+          ) : null}
+          {settings.address ? (
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-teal">
+                Address
+              </p>
+              <p className="mt-2 text-navy">{settings.address}</p>
+            </div>
+          ) : null}
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.12em] text-teal">
               Hours

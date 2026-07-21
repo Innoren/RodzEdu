@@ -21,8 +21,8 @@ export default async function CoursesPage() {
         </p>
 
         <div className="mt-6 flex flex-wrap gap-x-8 gap-y-2 text-sm text-ink/75">
-          <p>Questions? {settings.phone}</p>
-          <p>{settings.email}</p>
+          {settings.phone ? <p>Questions? {settings.phone}</p> : null}
+          {settings.email ? <p>{settings.email}</p> : null}
           <p>Office hours 9am–5pm EST, Mon–Fri</p>
         </div>
 

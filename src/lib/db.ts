@@ -16,18 +16,29 @@ const DATA_DIR = process.env.VERCEL
   : path.join(process.cwd(), "data");
 const DB_PATH = path.join(DATA_DIR, "store.json");
 
+declare global {
+  // Persist runtime DB across hot reloads / warm serverless invocations.
+  var __rodzeduDb: Database | undefined;
+}
+
 async function ensureDb(): Promise<Database> {
+  if (globalThis.__rodzeduDb) {
+    return globalThis.__rodzeduDb;
+  }
+
   await fs.mkdir(DATA_DIR, { recursive: true });
   try {
     const raw = await fs.readFile(DB_PATH, "utf8");
-    return JSON.parse(raw) as Database;
+    globalThis.__rodzeduDb = JSON.parse(raw) as Database;
   } catch {
-    await fs.writeFile(DB_PATH, JSON.stringify(seedData, null, 2), "utf8");
-    return structuredClone(seedData);
+    globalThis.__rodzeduDb = structuredClone(seedData);
+    await fs.writeFile(DB_PATH, JSON.stringify(globalThis.__rodzeduDb, null, 2), "utf8");
   }
+  return globalThis.__rodzeduDb;
 }
 
 async function writeDb(db: Database): Promise<void> {
+  globalThis.__rodzeduDb = db;
   await fs.mkdir(DATA_DIR, { recursive: true });
   await fs.writeFile(DB_PATH, JSON.stringify(db, null, 2), "utf8");
 }

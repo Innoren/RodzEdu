@@ -37,6 +37,14 @@ export default async function CeoLayout({
             >
               Public site
             </Link>
+            <form action="/api/auth/logout" method="post">
+              <button
+                type="submit"
+                className="rounded-sm border border-white/25 bg-transparent px-3 py-1.5 hover:bg-white/10"
+              >
+                Log out
+              </button>
+            </form>
           </div>
         </div>
       </header>

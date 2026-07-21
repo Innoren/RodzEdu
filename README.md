@@ -2,7 +2,7 @@
 
 Continuing education platform for healthcare professionals — starting with radiology.
 
-Inspired by professional CE experiences like [X-Ray Lady](https://x-raylady.com): clear catalog browsing, phone/email support cues, and online testing — with modern role-based portals for students, teachers, admins, and the CEO.
+Inspired by professional CE experiences: clear catalog browsing, phone/email support cues, and online testing — with modern role-based portals for students, teachers, admins, and the CEO.
 
 ## Features
 

@@ -48,8 +48,8 @@ export default async function HomePage() {
               Real people, real help
             </p>
             <p className="mt-2 text-sm leading-relaxed text-ink/80">
-              Questions about an order or certificate? Call during office hours —
-              we answer the phone.
+              Questions about an order or certificate? Reach us during office
+              hours — we&apos;re here to help.
             </p>
           </div>
           <div>
@@ -58,8 +58,12 @@ export default async function HomePage() {
             </p>
             <p className="mt-2 text-sm leading-relaxed text-ink/80">
               Monday–Friday · 9am–5pm EST
-              <br />
-              {settings.phone}
+              {settings.phone ? (
+                <>
+                  <br />
+                  {settings.phone}
+                </>
+              ) : null}
             </p>
           </div>
           <div>
@@ -214,10 +218,29 @@ export default async function HomePage() {
               access, certificates, or order questions come up.
             </p>
             <p>
-              Prefer to order by phone? Call{" "}
-              <span className="font-semibold text-navy">{settings.phone}</span>{" "}
-              or email{" "}
-              <span className="font-semibold text-navy">{settings.email}</span>.
+              {settings.phone ? (
+                <>
+                  Prefer to order by phone? Call{" "}
+                  <span className="font-semibold text-navy">{settings.phone}</span>
+                  {settings.email ? (
+                    <>
+                      {" "}
+                      or email{" "}
+                      <span className="font-semibold text-navy">
+                        {settings.email}
+                      </span>
+                    </>
+                  ) : null}
+                  .
+                </>
+              ) : settings.email ? (
+                <>
+                  Prefer to reach us by email? Write{" "}
+                  <span className="font-semibold text-navy">{settings.email}</span>.
+                </>
+              ) : (
+                <>Prefer to talk before you enroll? Use the contact page.</>
+              )}
             </p>
             <Link href="/contact" className="btn btn-ghost !px-4 !py-2.5 text-sm">
               Contact RodzEdu

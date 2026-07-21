@@ -12,7 +12,7 @@ export async function SiteFooter() {
           <p className="mt-3 max-w-md text-sm leading-relaxed text-white/75">
             Homestudy continuing education for radiologic technologists and
             imaging professionals — clear courses, credible credits, and support
-            you can reach by phone.
+            when you need it.
           </p>
         </div>
         <div>
@@ -30,9 +30,9 @@ export async function SiteFooter() {
             Contact
           </p>
           <div className="mt-3 space-y-2 text-sm text-white/80">
-            <p>{settings.phone}</p>
-            <p>{settings.email}</p>
-            <p>{settings.address}</p>
+            {settings.phone ? <p>{settings.phone}</p> : null}
+            {settings.email ? <p>{settings.email}</p> : null}
+            {settings.address ? <p>{settings.address}</p> : null}
             <p>Office hours: 9am–5pm EST, Mon–Fri</p>
           </div>
         </div>

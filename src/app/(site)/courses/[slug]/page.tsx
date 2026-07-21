@@ -44,7 +44,11 @@ export default async function CourseDetailPage({
               <li>{course.credits} CE credits with a complete online exam</li>
               <li>Structured module content you can finish around your schedule</li>
               <li>Immediate access after enrollment — no shipping delay</li>
-              <li>Support available by phone or email during office hours</li>
+              <li>
+                Support available
+                {settings.phone ? " by phone or email" : " by email"} during
+                office hours
+              </li>
             </ul>
           </div>
 
@@ -69,7 +73,11 @@ export default async function CourseDetailPage({
 
           <div className="mt-6 space-y-2 border-t border-line pt-5 text-sm text-ink/80">
             <p>Transparent pricing — no add-on fees at checkout.</p>
-            <p>Need help choosing? Call {settings.phone}.</p>
+            {settings.phone ? (
+              <p>Need help choosing? Call {settings.phone}.</p>
+            ) : settings.email ? (
+              <p>Need help choosing? Email {settings.email}.</p>
+            ) : null}
           </div>
 
           {alreadyEnrolled ? (
