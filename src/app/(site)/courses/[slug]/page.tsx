@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import { getCourseBySlug, getSettings, listEnrollmentsForUser } from "@/lib/db";
 import { formatMoney } from "@/lib/format";
+import { CheckoutForm } from "@/components/CheckoutForm";
 
 export default async function CourseDetailPage({
   params,
@@ -42,7 +43,12 @@ export default async function CourseDetailPage({
             </h2>
             <ul className="mt-4 space-y-3 text-sm leading-relaxed text-ink/80 md:text-base">
               <li>{course.credits} CE credits with a complete online exam</li>
-              <li>Structured module content you can finish around your schedule</li>
+              <li>
+                {(course.modules?.length || 0) > 0
+                  ? `${course.modules.length} learning modules with built-in quizzes`
+                  : "Structured module content you can finish around your schedule"}
+              </li>
+              <li>Save progress and return later — certificate issued on pass</li>
               <li>Immediate access after enrollment — no shipping delay</li>
               <li>
                 Support available
@@ -54,9 +60,21 @@ export default async function CourseDetailPage({
 
           <div className="mt-8">
             <h2 className="font-[family-name:var(--font-display)] text-2xl text-navy">
-              Course overview
+              Course modules
             </h2>
-            <p className="mt-3 max-w-2xl leading-relaxed text-muted">
+            <ol className="mt-4 space-y-3 text-sm text-ink/85 md:text-base">
+              {(course.modules || []).map((module, index) => (
+                <li key={module.id}>
+                  <span className="font-semibold text-navy">
+                    {index + 1}. {module.title}
+                  </span>
+                  {module.quizQuestions.length > 0
+                    ? " · includes quiz"
+                    : ""}
+                </li>
+              ))}
+            </ol>
+            <p className="mt-5 max-w-2xl leading-relaxed text-muted">
               {course.content}
             </p>
           </div>
@@ -85,12 +103,7 @@ export default async function CourseDetailPage({
               Continue in my account
             </Link>
           ) : user?.role === "student" ? (
-            <form action="/api/checkout" method="post" className="mt-6">
-              <input type="hidden" name="courseId" value={course.id} />
-              <button type="submit" className="btn btn-primary w-full">
-                Enroll securely
-              </button>
-            </form>
+            <CheckoutForm courseId={course.id} className="mt-6" />
           ) : (
             <Link
               href={`/login?next=/courses/${course.slug}`}

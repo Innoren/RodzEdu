@@ -1,10 +1,15 @@
 import Link from "next/link";
-import { getSettings, listPublishedCourses } from "@/lib/db";
+import {
+  getSettings,
+  listPublishedBundles,
+  listPublishedCourses,
+} from "@/lib/db";
 import { formatMoney } from "@/lib/format";
 
 export default async function CoursesPage() {
-  const [courses, settings] = await Promise.all([
+  const [courses, bundles, settings] = await Promise.all([
     listPublishedCourses(),
+    listPublishedBundles(),
     getSettings(),
   ]);
 
@@ -26,6 +31,45 @@ export default async function CoursesPage() {
           <p>Office hours 9am–5pm EST, Mon–Fri</p>
         </div>
 
+        {bundles.length > 0 && (
+          <div className="mt-12">
+            <h2 className="font-[family-name:var(--font-display)] text-2xl text-navy">
+              Course bundles
+            </h2>
+            <div className="mt-4 divide-y divide-line border-y border-line">
+              {bundles.map((bundle) => (
+                <article
+                  key={bundle.id}
+                  className="grid gap-5 py-7 md:grid-cols-[1fr_auto] md:items-center"
+                >
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-teal">
+                      Bundle · {bundle.courseIds.length} courses
+                    </p>
+                    <h3 className="mt-2 font-[family-name:var(--font-display)] text-2xl text-navy">
+                      {bundle.title}
+                    </h3>
+                    <p className="mt-2 max-w-2xl text-sm text-muted md:text-base">
+                      {bundle.description}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-4 md:flex-col md:items-end">
+                    <p className="text-2xl font-semibold text-navy">
+                      {formatMoney(bundle.priceCents)}
+                    </p>
+                    <Link
+                      href={`/bundles/${bundle.slug}`}
+                      className="btn btn-primary !px-4 !py-2.5 text-sm"
+                    >
+                      View bundle
+                    </Link>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="mt-12 divide-y divide-line border-y border-line">
           {courses.map((course) => (
             <article
@@ -34,8 +78,8 @@ export default async function CoursesPage() {
             >
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.12em] text-teal">
-                  {course.category} · {course.credits} CE credits · Online exam
-                  included
+                  {course.category} · {course.credits} CE credits ·{" "}
+                  {course.modules?.length || 0} modules · Online exam
                 </p>
                 <h2 className="mt-2 font-[family-name:var(--font-display)] text-2xl text-navy md:text-3xl">
                   {course.title}

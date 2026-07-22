@@ -24,10 +24,26 @@ export default async function AdminPortalPage() {
                 RodzEdu catalog.
               </p>
             </div>
-            <Link href="/admin/new" className="btn btn-primary">
-              Upload new course
-            </Link>
+            <div className="flex flex-wrap gap-2">
+              <Link href="/admin/new" className="btn btn-primary">
+                Upload new course
+              </Link>
+              <Link href="/admin/instructors" className="btn btn-ghost">
+                Instructors
+              </Link>
+              <Link href="/admin/bundles" className="btn btn-ghost">
+                Bundles
+              </Link>
+              <Link href="/admin/discounts" className="btn btn-ghost">
+                Discounts
+              </Link>
+            </div>
           </div>
+
+          <p className="mt-4 text-sm text-muted">
+            No course limit — upload as many CE courses as you need. Each can
+            include modules, quizzes, and a final exam.
+          </p>
 
           <div className="mt-8 space-y-3">
             {courses.map((course) => (
@@ -45,6 +61,7 @@ export default async function AdminPortalPage() {
                   </h2>
                   <p className="mt-1 text-sm text-muted">
                     {course.credits} credits · {formatMoney(course.priceCents)} ·{" "}
+                    {course.modules?.length || 0} modules ·{" "}
                     {course.examQuestions.length} exam questions
                   </p>
                 </div>

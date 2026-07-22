@@ -16,12 +16,18 @@ const linksByRole: Record<Role, { href: string; label: string }[]> = {
   admin: [
     { href: "/admin", label: "Course Manager" },
     { href: "/admin/new", label: "Upload Course" },
+    { href: "/admin/instructors", label: "Instructors" },
+    { href: "/admin/bundles", label: "Bundles" },
+    { href: "/admin/discounts", label: "Discount Codes" },
     { href: "/courses", label: "Public Catalog" },
   ],
   ceo: [
     { href: "/ceo", label: "Company Overview" },
     { href: "/ceo/settings", label: "Site Settings" },
     { href: "/admin", label: "Courses" },
+    { href: "/admin/instructors", label: "Instructors" },
+    { href: "/admin/bundles", label: "Bundles" },
+    { href: "/admin/discounts", label: "Discounts" },
     { href: "/teacher", label: "Students" },
   ],
 };

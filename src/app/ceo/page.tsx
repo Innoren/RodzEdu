@@ -16,6 +16,8 @@ export default async function CeoOverviewPage() {
     { label: "Published courses", value: String(stats.publishedCourses) },
     { label: "Enrollments", value: String(stats.enrollments) },
     { label: "Completions", value: String(stats.completed) },
+    { label: "Certificates issued", value: String(stats.certificates) },
+    { label: "Bundles", value: String(stats.bundles) },
     { label: "Gross course value", value: formatMoney(stats.revenueCents) },
   ];
 

@@ -76,14 +76,49 @@ export function CourseUploadForm() {
     setError("");
 
     const form = new FormData(event.currentTarget);
+    const content = String(form.get("content") || "");
     const payload = {
       title: form.get("title"),
       category: form.get("category"),
       credits: Number(form.get("credits")),
       price: Number(form.get("price")),
       description: form.get("description"),
-      content: form.get("content"),
+      content,
       published: form.get("published") === "on",
+      modules: [
+        {
+          title: "Module 1 — Foundations",
+          content,
+          quizQuestions: [
+            {
+              prompt: "What is the first step to earn CE credit in this course?",
+              choices: [
+                "Complete modules and pass the final exam",
+                "Skip to the certificate page",
+                "Only open the course once",
+                "Email support for a waiver",
+              ],
+              correctIndex: 0,
+            },
+          ],
+        },
+        {
+          title: "Module 2 — Review & application",
+          content: `${content}\n\nReview the material, apply it to your practice, and confirm you are ready for the final exam.`,
+          quizQuestions: [
+            {
+              prompt: "Your module progress is saved so you can:",
+              choices: [
+                "Return later and continue where you left off",
+                "Only finish in one sitting",
+                "Share answers with other students",
+                "Bypass the final exam",
+              ],
+              correctIndex: 0,
+            },
+          ],
+        },
+      ],
       examQuestions: questions.map((q) => ({
         prompt: q.prompt,
         choices: q.choices

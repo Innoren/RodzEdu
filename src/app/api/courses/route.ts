@@ -30,13 +30,42 @@ export async function POST(request: Request) {
       )
     : [];
 
+  const content = String(body.content || "");
+  const modules = Array.isArray(body.modules)
+    ? body.modules.map(
+        (
+          m: {
+            title?: string;
+            content?: string;
+            quizQuestions?: ExamQuestion[];
+          },
+          index: number,
+        ) => ({
+          id: `mod-${Date.now()}-${index + 1}`,
+          title: String(m.title || `Module ${index + 1}`),
+          content: String(m.content || content),
+          quizQuestions: Array.isArray(m.quizQuestions)
+            ? m.quizQuestions.map((q, qIndex) => ({
+                id: `mq-${index + 1}-${qIndex + 1}`,
+                prompt: String(q.prompt || ""),
+                choices: Array.isArray(q.choices)
+                  ? q.choices.map((c) => String(c))
+                  : [],
+                correctIndex: Number(q.correctIndex ?? 0),
+              }))
+            : [],
+        }),
+      )
+    : undefined;
+
   const course = await createCourse({
     title: String(body.title || "Untitled Course"),
     category: String(body.category || "Radiography"),
     credits: Number(body.credits || 1),
     priceCents: Math.round(Number(body.price || 0) * 100),
     description: String(body.description || ""),
-    content: String(body.content || ""),
+    content,
+    modules,
     published: Boolean(body.published),
     examQuestions,
   });

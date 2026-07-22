@@ -279,3 +279,21 @@ a {
     animation: none;
   }
 }
+
+@media print {
+  header,
+  footer,
+  .print\:hidden,
+  aside,
+  nav {
+    display: none !important;
+  }
+
+  body {
+    background: white !important;
+  }
+
+  .section {
+    padding: 0 !important;
+  }
+}

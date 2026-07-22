@@ -16,6 +16,14 @@ export type ExamQuestion = {
   correctIndex: number;
 };
 
+export type CourseModule = {
+  id: string;
+  title: string;
+  content: string;
+  /** Optional short quiz required to mark the module complete. */
+  quizQuestions: ExamQuestion[];
+};
+
 export type Course = {
   id: string;
   title: string;
@@ -25,8 +33,11 @@ export type Course = {
   priceCents: number;
   description: string;
   published: boolean;
+  /** Legacy overview text; modules are the primary learning path. */
   content: string;
+  modules: CourseModule[];
   examQuestions: ExamQuestion[];
+  instructorId?: string;
   createdAt: string;
   updatedAt: string;
 };
@@ -45,10 +56,50 @@ export type Enrollment = {
   courseId: string;
   status: EnrollmentStatus;
   progressPercent: number;
+  completedModuleIds: string[];
+  certificateId?: string;
   score?: number;
   purchasedAt: string;
   completedAt?: string;
   lastActivityAt: string;
+};
+
+export type Certificate = {
+  id: string;
+  enrollmentId: string;
+  userId: string;
+  courseId: string;
+  studentName: string;
+  courseTitle: string;
+  credits: number;
+  score: number;
+  issuedAt: string;
+  certificateNumber: string;
+};
+
+export type Bundle = {
+  id: string;
+  title: string;
+  slug: string;
+  description: string;
+  courseIds: string[];
+  priceCents: number;
+  published: boolean;
+  createdAt: string;
+};
+
+export type DiscountCode = {
+  id: string;
+  code: string;
+  /** Percent off 1–100, or omit when using amountOffCents. */
+  percentOff?: number;
+  /** Fixed cents off, or omit when using percentOff. */
+  amountOffCents?: number;
+  active: boolean;
+  maxRedemptions?: number;
+  redemptionCount: number;
+  expiresAt?: string;
+  createdAt: string;
 };
 
 export type SiteSettings = {
@@ -64,5 +115,8 @@ export type Database = {
   users: User[];
   courses: Course[];
   enrollments: Enrollment[];
+  certificates: Certificate[];
+  bundles: Bundle[];
+  discountCodes: DiscountCode[];
   settings: SiteSettings;
 };

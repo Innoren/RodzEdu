@@ -1,4 +1,51 @@
-import type { Database } from "./types";
+import type { Course, Database } from "./types";
+
+function withModules(
+  course: Omit<Course, "modules"> & { modules?: Course["modules"] },
+): Course {
+  if (course.modules?.length) return course as Course;
+  return {
+    ...course,
+    modules: [
+      {
+        id: `${course.id}-mod-1`,
+        title: "Module 1 — Foundations",
+        content: course.content,
+        quizQuestions: [
+          {
+            id: `${course.id}-mq1`,
+            prompt: `In ${course.title}, what is the first step toward earning CE credit?`,
+            choices: [
+              "Complete the learning modules, then take the final exam",
+              "Skip modules and request a certificate",
+              "Only watch a video once",
+              "Mail a paper workbook",
+            ],
+            correctIndex: 0,
+          },
+        ],
+      },
+      {
+        id: `${course.id}-mod-2`,
+        title: "Module 2 — Practice & review",
+        content: `${course.content}\n\nReview key takeaways, relate them to your clinical workflow, and confirm you are ready for the final exam.`,
+        quizQuestions: [
+          {
+            id: `${course.id}-mq2`,
+            prompt: "Progress is saved so you can:",
+            choices: [
+              "Return later and continue where you left off",
+              "Only study in one sitting",
+              "Share your login with coworkers",
+              "Skip the final exam",
+            ],
+            correctIndex: 0,
+          },
+        ],
+      },
+    ],
+  };
+}
 
 export const seedData: Database = {
   settings: {
@@ -51,7 +98,7 @@ export const seedData: Database = {
     },
   ],
   courses: [
-    {
+    withModules({
       id: "course-rad-fundamentals",
       title: "Radiographic Fundamentals Review",
       slug: "radiographic-fundamentals-review",
@@ -63,6 +110,7 @@ export const seedData: Database = {
       published: true,
       content:
         "This course covers exposure factors, contrast and density relationships, grids, collimation, and common positioning series. Complete all modules, then take the online exam to earn your CE certificate.",
+      instructorId: "user-teacher",
       examQuestions: [
         {
           id: "q1",
@@ -106,8 +154,8 @@ export const seedData: Database = {
       ],
       createdAt: "2026-01-10T12:00:00.000Z",
       updatedAt: "2026-01-10T12:00:00.000Z",
-    },
-    {
+    }),
+    withModules({
       id: "course-mammo-basics",
       title: "Mammography Essentials",
       slug: "mammography-essentials",
@@ -119,6 +167,7 @@ export const seedData: Database = {
       published: true,
       content:
         "Explore breast anatomy for imaging, standard projections, compression technique, and quality assurance workflows used in mammography departments.",
+      instructorId: "user-teacher",
       examQuestions: [
         {
           id: "q1",
@@ -156,8 +205,8 @@ export const seedData: Database = {
       ],
       createdAt: "2026-02-01T12:00:00.000Z",
       updatedAt: "2026-02-01T12:00:00.000Z",
-    },
-    {
+    }),
+    withModules({
       id: "course-ct-safety",
       title: "CT Dose & Patient Safety",
       slug: "ct-dose-patient-safety",
@@ -169,6 +218,7 @@ export const seedData: Database = {
       published: true,
       content:
         "Review ALARA principles in CT, automatic exposure control, pediatric considerations, and communication strategies that support safer imaging.",
+      instructorId: "user-teacher",
       examQuestions: [
         {
           id: "q1",
@@ -206,7 +256,7 @@ export const seedData: Database = {
       ],
       createdAt: "2026-03-01T12:00:00.000Z",
       updatedAt: "2026-03-01T12:00:00.000Z",
-    },
+    }),
   ],
   enrollments: [
     {
@@ -214,7 +264,8 @@ export const seedData: Database = {
       userId: "user-student-1",
       courseId: "course-rad-fundamentals",
       status: "in_progress",
-      progressPercent: 60,
+      progressPercent: 50,
+      completedModuleIds: ["course-rad-fundamentals-mod-1"],
       purchasedAt: "2026-06-01T14:00:00.000Z",
       lastActivityAt: "2026-07-10T16:00:00.000Z",
     },
@@ -224,8 +275,37 @@ export const seedData: Database = {
       courseId: "course-mammo-basics",
       status: "exam_ready",
       progressPercent: 100,
+      completedModuleIds: [
+        "course-mammo-basics-mod-1",
+        "course-mammo-basics-mod-2",
+      ],
       purchasedAt: "2026-06-15T10:00:00.000Z",
       lastActivityAt: "2026-07-12T11:00:00.000Z",
+    },
+  ],
+  certificates: [],
+  bundles: [
+    {
+      id: "bundle-rad-core",
+      title: "Radiology Core Bundle",
+      slug: "radiology-core-bundle",
+      description:
+        "Save when you enroll in Radiographic Fundamentals and CT Dose & Patient Safety together.",
+      courseIds: ["course-rad-fundamentals", "course-ct-safety"],
+      priceCents: 7900,
+      published: true,
+      createdAt: "2026-04-01T12:00:00.000Z",
+    },
+  ],
+  discountCodes: [
+    {
+      id: "promo-welcome10",
+      code: "WELCOME10",
+      percentOff: 10,
+      active: true,
+      redemptionCount: 0,
+      maxRedemptions: 500,
+      createdAt: "2026-04-01T12:00:00.000Z",
     },
   ],
 };

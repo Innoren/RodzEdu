@@ -17,6 +17,7 @@ export function ExamClient({
   const [result, setResult] = useState<{
     score: number;
     passed: boolean;
+    certificateId?: string;
   } | null>(null);
   const [error, setError] = useState("");
 
@@ -46,7 +47,11 @@ export function ExamClient({
       return;
     }
 
-    setResult({ score: data.score, passed: data.passed });
+    setResult({
+      score: data.score,
+      passed: data.passed,
+      certificateId: data.certificate?.id || data.enrollment?.certificateId,
+    });
   }
 
   if (result) {
@@ -58,16 +63,26 @@ export function ExamClient({
         </h2>
         <p className="mt-4 text-muted">
           {result.passed
-            ? "Congratulations — your continuing education exam is complete. You may close this window and return to your student portal."
+            ? "Congratulations — your certificate was issued automatically. Download it from your student portal."
             : "A score of 75% is required to pass. Review the course modules, then retake the exam from your portal."}
         </p>
-        <button
-          type="button"
-          onClick={() => window.close()}
-          className="btn btn-navy mt-6"
-        >
-          Close exam window
-        </button>
+        <div className="mt-6 flex flex-wrap justify-center gap-3">
+          {result.passed && result.certificateId ? (
+            <a
+              href={`/student/certificates/${result.certificateId}`}
+              className="btn btn-primary"
+            >
+              Download certificate
+            </a>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => window.close()}
+            className="btn btn-navy"
+          >
+            Close exam window
+          </button>
+        </div>
       </div>
     );
   }

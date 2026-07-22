@@ -1,12 +1,18 @@
 import { get, put } from "@vercel/blob";
 import { promises as fs } from "fs";
 import path from "path";
+import { applyDiscount, normalizeDatabase, slugify } from "./normalize";
 import { seedData } from "./seed";
 import type {
+  Bundle,
+  Certificate,
   Course,
+  CourseModule,
   Database,
+  DiscountCode,
   Enrollment,
   EnrollmentStatus,
+  ExamQuestion,
   SiteSettings,
   User,
 } from "./types";
@@ -74,18 +80,18 @@ async function ensureDb(): Promise<Database> {
 
   const fromBlob = await readDbFromBlob();
   if (fromBlob) {
-    globalThis.__rodzeduDb = fromBlob;
-    return fromBlob;
+    globalThis.__rodzeduDb = normalizeDatabase(fromBlob);
+    return globalThis.__rodzeduDb;
   }
 
   const fromFile = await readDbFromFile();
   if (fromFile) {
-    globalThis.__rodzeduDb = fromFile;
-    await writeDbToBlob(fromFile);
-    return fromFile;
+    globalThis.__rodzeduDb = normalizeDatabase(fromFile);
+    await writeDbToBlob(globalThis.__rodzeduDb);
+    return globalThis.__rodzeduDb;
   }
 
-  const seeded = structuredClone(seedData);
+  const seeded = normalizeDatabase(structuredClone(seedData));
   globalThis.__rodzeduDb = seeded;
   await writeDbToFile(seeded);
   await writeDbToBlob(seeded);
@@ -107,8 +113,8 @@ export async function getSettings(): Promise<SiteSettings> {
   if (hasBlobStore()) {
     const fromBlob = await readDbFromBlob();
     if (fromBlob) {
-      globalThis.__rodzeduDb = fromBlob;
-      return fromBlob.settings;
+      globalThis.__rodzeduDb = normalizeDatabase(fromBlob);
+      return globalThis.__rodzeduDb.settings;
     }
   }
   const db = await ensureDb();
@@ -193,8 +199,9 @@ export async function getCourseBySlug(slug: string): Promise<Course | undefined>
 }
 
 export async function createCourse(
-  input: Omit<Course, "id" | "createdAt" | "updatedAt" | "slug"> & {
+  input: Omit<Course, "id" | "createdAt" | "updatedAt" | "slug" | "modules"> & {
     slug?: string;
+    modules?: CourseModule[];
   },
 ): Promise<Course> {
   const db = await ensureDb();
@@ -216,7 +223,18 @@ export async function createCourse(
     description: input.description,
     published: input.published,
     content: input.content,
+    modules: input.modules?.length
+      ? input.modules
+      : [
+          {
+            id: `mod-${Date.now()}-1`,
+            title: "Module 1 — Course content",
+            content: input.content || input.description,
+            quizQuestions: [],
+          },
+        ],
     examQuestions: input.examQuestions,
+    instructorId: input.instructorId,
     createdAt: now,
     updatedAt: now,
   };
@@ -297,6 +315,7 @@ export async function enrollUser(
     courseId,
     status: "purchased",
     progressPercent: 0,
+    completedModuleIds: [],
     purchasedAt: now,
     lastActivityAt: now,
   };
@@ -330,15 +349,21 @@ export async function updateEnrollmentProgress(
 export async function submitExam(
   enrollmentId: string,
   answers: number[],
-): Promise<{ enrollment: Enrollment; score: number; passed: boolean } | null> {
+): Promise<{
+  enrollment: Enrollment;
+  score: number;
+  passed: boolean;
+  certificate?: Certificate;
+} | null> {
   const db = await ensureDb();
   const enrollment = db.enrollments.find((e) => e.id === enrollmentId);
   if (!enrollment) return null;
 
   const course = db.courses.find((c) => c.id === enrollment.courseId);
-  if (!course) return null;
+  const student = db.users.find((u) => u.id === enrollment.userId);
+  if (!course || !student) return null;
 
-  const total = course.examQuestions.length;
+  const total = course.examQuestions.length || 1;
   let correct = 0;
   course.examQuestions.forEach((q, i) => {
     if (answers[i] === q.correctIndex) correct += 1;
@@ -351,14 +376,269 @@ export async function submitExam(
   enrollment.score = score;
   enrollment.lastActivityAt = now;
   enrollment.status = (passed ? "exam_passed" : "exam_failed") as EnrollmentStatus;
+
+  let certificate: Certificate | undefined;
   if (passed) {
     enrollment.status = "completed";
     enrollment.completedAt = now;
     enrollment.progressPercent = 100;
+
+    const existing = db.certificates.find(
+      (c) => c.enrollmentId === enrollment.id,
+    );
+    if (existing) {
+      certificate = existing;
+      enrollment.certificateId = existing.id;
+    } else {
+      certificate = {
+        id: `cert-${Date.now()}`,
+        enrollmentId: enrollment.id,
+        userId: student.id,
+        courseId: course.id,
+        studentName: student.name,
+        courseTitle: course.title,
+        credits: course.credits,
+        score,
+        issuedAt: now,
+        certificateNumber: `RE-${new Date().getFullYear()}-${String(
+          db.certificates.length + 1,
+        ).padStart(5, "0")}`,
+      };
+      db.certificates.unshift(certificate);
+      enrollment.certificateId = certificate.id;
+    }
   }
 
   await writeDb(db);
-  return { enrollment, score, passed };
+  return { enrollment, score, passed, certificate };
+}
+
+export async function completeModule(input: {
+  enrollmentId: string;
+  moduleId: string;
+  quizAnswers?: number[];
+}): Promise<
+  | { enrollment: Enrollment; course: Course }
+  | { error: string }
+> {
+  const db = await ensureDb();
+  const enrollment = db.enrollments.find((e) => e.id === input.enrollmentId);
+  if (!enrollment) return { error: "Enrollment not found." };
+
+  const course = db.courses.find((c) => c.id === enrollment.courseId);
+  if (!course) return { error: "Course not found." };
+
+  const module = course.modules.find((m) => m.id === input.moduleId);
+  if (!module) return { error: "Module not found." };
+
+  if (module.quizQuestions.length > 0) {
+    const answers = input.quizAnswers || [];
+    if (answers.length !== module.quizQuestions.length) {
+      return { error: "Answer every quiz question to complete this module." };
+    }
+    const allCorrect = module.quizQuestions.every(
+      (q, i) => answers[i] === q.correctIndex,
+    );
+    if (!allCorrect) {
+      return {
+        error: "One or more quiz answers were incorrect. Review the module and try again.",
+      };
+    }
+  }
+
+  if (!enrollment.completedModuleIds.includes(module.id)) {
+    enrollment.completedModuleIds.push(module.id);
+  }
+
+  const total = Math.max(course.modules.length, 1);
+  const progressPercent = Math.round(
+    (enrollment.completedModuleIds.length / total) * 100,
+  );
+  enrollment.progressPercent = Math.min(100, progressPercent);
+  enrollment.lastActivityAt = new Date().toISOString();
+
+  if (enrollment.progressPercent >= 100 && enrollment.status !== "completed") {
+    enrollment.status = "exam_ready";
+  } else if (enrollment.progressPercent > 0 && enrollment.status === "purchased") {
+    enrollment.status = "in_progress";
+  }
+
+  await writeDb(db);
+  return { enrollment, course };
+}
+
+export async function getCertificateById(
+  id: string,
+): Promise<Certificate | undefined> {
+  const db = await ensureDb();
+  return db.certificates.find((c) => c.id === id);
+}
+
+export async function listCertificatesForUser(
+  userId: string,
+): Promise<Certificate[]> {
+  const db = await ensureDb();
+  return db.certificates.filter((c) => c.userId === userId);
+}
+
+export async function createInstructor(input: {
+  name: string;
+  email: string;
+  password: string;
+}): Promise<{ user: User } | { error: string }> {
+  const db = await ensureDb();
+  const email = input.email.trim().toLowerCase();
+  const name = input.name.trim();
+  const password = input.password;
+
+  if (!name || !email || password.length < 6) {
+    return {
+      error: "Enter name, email, and a password of at least 6 characters.",
+    };
+  }
+  if (db.users.some((u) => u.email.toLowerCase() === email)) {
+    return { error: "An account with that email already exists." };
+  }
+
+  const user: User = {
+    id: `user-teacher-${Date.now()}`,
+    name,
+    email,
+    password,
+    role: "teacher",
+  };
+  db.users.push(user);
+  await writeDb(db);
+  return { user };
+}
+
+export async function listInstructors(): Promise<User[]> {
+  const db = await ensureDb();
+  return db.users.filter((u) => u.role === "teacher");
+}
+
+export async function listBundles(): Promise<Bundle[]> {
+  const db = await ensureDb();
+  return db.bundles;
+}
+
+export async function listPublishedBundles(): Promise<Bundle[]> {
+  const db = await ensureDb();
+  return db.bundles.filter((b) => b.published);
+}
+
+export async function getBundleBySlug(
+  slug: string,
+): Promise<Bundle | undefined> {
+  const db = await ensureDb();
+  return db.bundles.find((b) => b.slug === slug);
+}
+
+export async function getBundleById(id: string): Promise<Bundle | undefined> {
+  const db = await ensureDb();
+  return db.bundles.find((b) => b.id === id);
+}
+
+export async function createBundle(input: {
+  title: string;
+  description: string;
+  courseIds: string[];
+  priceCents: number;
+  published: boolean;
+}): Promise<Bundle | { error: string }> {
+  const db = await ensureDb();
+  if (!input.title.trim() || input.courseIds.length < 2) {
+    return { error: "Bundles need a title and at least two courses." };
+  }
+
+  const bundle: Bundle = {
+    id: `bundle-${Date.now()}`,
+    title: input.title.trim(),
+    slug: slugify(input.title),
+    description: input.description.trim(),
+    courseIds: input.courseIds,
+    priceCents: input.priceCents,
+    published: input.published,
+    createdAt: new Date().toISOString(),
+  };
+  db.bundles.unshift(bundle);
+  await writeDb(db);
+  return bundle;
+}
+
+export async function listDiscountCodes(): Promise<DiscountCode[]> {
+  const db = await ensureDb();
+  return db.discountCodes;
+}
+
+export async function findDiscountCode(
+  code: string,
+): Promise<DiscountCode | undefined> {
+  const db = await ensureDb();
+  return db.discountCodes.find(
+    (c) => c.code.toLowerCase() === code.trim().toLowerCase(),
+  );
+}
+
+export async function createDiscountCode(input: {
+  code: string;
+  percentOff?: number;
+  amountOffCents?: number;
+  maxRedemptions?: number;
+  expiresAt?: string;
+}): Promise<DiscountCode | { error: string }> {
+  const db = await ensureDb();
+  const code = input.code.trim().toUpperCase();
+  if (!code) return { error: "Enter a discount code." };
+  if (db.discountCodes.some((c) => c.code.toLowerCase() === code.toLowerCase())) {
+    return { error: "That discount code already exists." };
+  }
+  if (!input.percentOff && !input.amountOffCents) {
+    return { error: "Set a percent or fixed amount off." };
+  }
+
+  const discount: DiscountCode = {
+    id: `promo-${Date.now()}`,
+    code,
+    percentOff: input.percentOff,
+    amountOffCents: input.amountOffCents,
+    active: true,
+    maxRedemptions: input.maxRedemptions,
+    redemptionCount: 0,
+    expiresAt: input.expiresAt,
+    createdAt: new Date().toISOString(),
+  };
+  db.discountCodes.unshift(discount);
+  await writeDb(db);
+  return discount;
+}
+
+export async function redeemDiscountCode(code: string): Promise<void> {
+  const db = await ensureDb();
+  const discount = db.discountCodes.find(
+    (c) => c.code.toLowerCase() === code.trim().toLowerCase(),
+  );
+  if (!discount) return;
+  discount.redemptionCount += 1;
+  await writeDb(db);
+}
+
+export async function enrollUserInCourses(
+  userId: string,
+  courseIds: string[],
+): Promise<Enrollment[]> {
+  const results: Enrollment[] = [];
+  for (const courseId of courseIds) {
+    results.push(await enrollUser(userId, courseId));
+  }
+  return results;
+}
+
+export function priceWithDiscount(
+  priceCents: number,
+  code: DiscountCode | undefined,
+) {
+  return applyDiscount(priceCents, code);
 }
 
 export async function getDashboardStats() {
@@ -370,9 +650,13 @@ export async function getDashboardStats() {
     publishedCourses: db.courses.filter((c) => c.published).length,
     enrollments: db.enrollments.length,
     completed: db.enrollments.filter((e) => e.status === "completed").length,
+    certificates: db.certificates.length,
+    bundles: db.bundles.length,
     revenueCents: db.enrollments.reduce((sum, e) => {
       const course = db.courses.find((c) => c.id === e.courseId);
       return sum + (course?.priceCents ?? 0);
     }, 0),
   };
 }
+
+export type { CourseModule, ExamQuestion };

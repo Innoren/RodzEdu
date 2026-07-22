@@ -2,12 +2,12 @@ import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import {
   getCourseById,
+  listCertificatesForUser,
   listEnrollmentsForUser,
 } from "@/lib/db";
 import { formatDate, statusLabel } from "@/lib/format";
 import { PortalNav } from "@/components/PortalNav";
 import { OpenExamButton } from "@/components/OpenExamButton";
-import { UpdateProgressButton } from "@/components/UpdateProgressButton";
 
 export default async function StudentPortalPage({
   searchParams,
@@ -16,7 +16,10 @@ export default async function StudentPortalPage({
 }) {
   const user = await requireUser(["student"]);
   const params = await searchParams;
-  const enrollments = await listEnrollmentsForUser(user.id);
+  const [enrollments, certificates] = await Promise.all([
+    listEnrollmentsForUser(user.id),
+    listCertificatesForUser(user.id),
+  ]);
 
   const rows = await Promise.all(
     enrollments.map(async (enrollment) => {
@@ -35,8 +38,8 @@ export default async function StudentPortalPage({
             Your CE progress
           </h1>
           <p className="mt-3 text-muted">
-            Track modules, open exams in a dedicated window, and manage your
-            radiology continuing education.
+            Save module progress, take built-in quizzes, pass the final exam,
+            and download your certificate automatically.
           </p>
 
           {params.purchased && (
@@ -61,6 +64,7 @@ export default async function StudentPortalPage({
               const examReady =
                 enrollment.progressPercent >= 100 &&
                 enrollment.status !== "completed";
+              const certificateId = enrollment.certificateId;
 
               return (
                 <article key={enrollment.id} className="panel p-5">
@@ -87,7 +91,10 @@ export default async function StudentPortalPage({
 
                   <div className="mt-4">
                     <div className="mb-2 flex justify-between text-sm">
-                      <span className="text-muted">Module progress</span>
+                      <span className="text-muted">
+                        Modules {enrollment.completedModuleIds?.length || 0}/
+                        {course.modules?.length || 0}
+                      </span>
                       <span className="font-semibold text-navy">
                         {enrollment.progressPercent}%
                       </span>
@@ -101,14 +108,26 @@ export default async function StudentPortalPage({
                   </div>
 
                   <div className="mt-5 flex flex-wrap gap-3">
-                    <UpdateProgressButton
-                      enrollmentId={enrollment.id}
-                      current={enrollment.progressPercent}
-                    />
+                    <Link
+                      href={`/student/learn/${enrollment.id}`}
+                      className="btn btn-primary !px-3 !py-2 text-sm"
+                    >
+                      {enrollment.status === "completed"
+                        ? "Review modules"
+                        : "Continue learning"}
+                    </Link>
                     <OpenExamButton
                       enrollmentId={enrollment.id}
                       disabled={!examReady && enrollment.status !== "completed"}
                     />
+                    {certificateId ? (
+                      <Link
+                        href={`/student/certificates/${certificateId}`}
+                        className="btn btn-navy !px-3 !py-2 text-sm"
+                      >
+                        Download certificate
+                      </Link>
+                    ) : null}
                     <Link
                       href={`/courses/${course.slug}`}
                       className="btn btn-ghost !px-3 !py-2 text-sm"
@@ -118,13 +137,45 @@ export default async function StudentPortalPage({
                   </div>
                   {!examReady && enrollment.status !== "completed" && (
                     <p className="mt-3 text-xs text-muted">
-                      Complete modules to 100% before the exam window unlocks.
+                      Complete every module quiz to unlock the final exam.
+                      Progress saves automatically when you finish a module.
+                    </p>
+                  )}
+                  {enrollment.status === "completed" && !certificateId && (
+                    <p className="mt-3 text-xs text-muted">
+                      Certificate issuance is linked to a passing exam score.
                     </p>
                   )}
                 </article>
               );
             })}
           </div>
+
+          {certificates.length > 0 && (
+            <div className="mt-10">
+              <h2 className="font-[family-name:var(--font-display)] text-2xl text-navy">
+                Your certificates
+              </h2>
+              <ul className="mt-4 space-y-2">
+                {certificates.map((cert) => (
+                  <li key={cert.id} className="panel flex flex-wrap items-center justify-between gap-3 p-4">
+                    <div>
+                      <p className="font-semibold text-navy">{cert.courseTitle}</p>
+                      <p className="text-sm text-muted">
+                        {cert.certificateNumber} · Issued {formatDate(cert.issuedAt)}
+                      </p>
+                    </div>
+                    <Link
+                      href={`/student/certificates/${cert.id}`}
+                      className="btn btn-ghost !px-3 !py-2 text-sm"
+                    >
+                      Download
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       </div>
     </section>
