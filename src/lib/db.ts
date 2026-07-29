@@ -8,12 +8,16 @@ import type {
   Certificate,
   Course,
   CourseModule,
+  CourseReview,
   Database,
   DiscountCode,
   Enrollment,
   EnrollmentStatus,
   ExamQuestion,
+  FaqItem,
   SiteSettings,
+  SupportTicket,
+  Testimonial,
   User,
 } from "./types";
 
@@ -73,6 +77,44 @@ async function writeDbToFile(db: Database): Promise<void> {
   await fs.writeFile(DB_PATH, JSON.stringify(db, null, 2), "utf8");
 }
 
+/** Fill growth-feature collections on older stores that predate them. */
+function migrateGrowthCollections(db: Database): boolean {
+  let dirty = false;
+
+  if (!db.faqs.length) {
+    db.faqs = structuredClone(seedData.faqs);
+    dirty = true;
+  }
+  if (!db.testimonials.length) {
+    db.testimonials = structuredClone(seedData.testimonials);
+    dirty = true;
+  }
+  if (!db.reviews.length) {
+    const courseIds = new Set(db.courses.map((c) => c.id));
+    db.reviews = structuredClone(seedData.reviews).filter((r) =>
+      courseIds.has(r.courseId),
+    );
+    dirty = true;
+  }
+  if (!db.courses.some((c) => c.featured)) {
+    for (const course of db.courses.filter((c) => c.published).slice(0, 2)) {
+      course.featured = true;
+      dirty = true;
+    }
+  }
+  for (const seedUser of seedData.users) {
+    if (seedUser.role !== "teacher" || !seedUser.bio) continue;
+    const user = db.users.find((u) => u.email === seedUser.email);
+    if (user && !user.bio) {
+      user.bio = seedUser.bio;
+      user.credentials = seedUser.credentials;
+      dirty = true;
+    }
+  }
+
+  return dirty;
+}
+
 async function ensureDb(): Promise<Database> {
   if (globalThis.__rodzeduDb) {
     return globalThis.__rodzeduDb;
@@ -80,15 +122,24 @@ async function ensureDb(): Promise<Database> {
 
   const fromBlob = await readDbFromBlob();
   if (fromBlob) {
-    globalThis.__rodzeduDb = normalizeDatabase(fromBlob);
-    return globalThis.__rodzeduDb;
+    const db = normalizeDatabase(fromBlob);
+    if (migrateGrowthCollections(db)) {
+      globalThis.__rodzeduDb = db;
+      await writeDb(db);
+      return db;
+    }
+    globalThis.__rodzeduDb = db;
+    return db;
   }
 
   const fromFile = await readDbFromFile();
   if (fromFile) {
-    globalThis.__rodzeduDb = normalizeDatabase(fromFile);
-    await writeDbToBlob(globalThis.__rodzeduDb);
-    return globalThis.__rodzeduDb;
+    const db = normalizeDatabase(fromFile);
+    migrateGrowthCollections(db);
+    globalThis.__rodzeduDb = db;
+    await writeDbToFile(db);
+    await writeDbToBlob(db);
+    return db;
   }
 
   const seeded = normalizeDatabase(structuredClone(seedData));
@@ -222,6 +273,7 @@ export async function createCourse(
     priceCents: input.priceCents,
     description: input.description,
     published: input.published,
+    featured: Boolean(input.featured),
     content: input.content,
     modules: input.modules?.length
       ? input.modules
@@ -485,6 +537,8 @@ export async function createInstructor(input: {
   name: string;
   email: string;
   password: string;
+  credentials?: string;
+  bio?: string;
 }): Promise<{ user: User } | { error: string }> {
   const db = await ensureDb();
   const email = input.email.trim().toLowerCase();
@@ -506,6 +560,8 @@ export async function createInstructor(input: {
     email,
     password,
     role: "teacher",
+    credentials: input.credentials?.trim() || undefined,
+    bio: input.bio?.trim() || undefined,
   };
   db.users.push(user);
   await writeDb(db);
@@ -643,20 +699,214 @@ export function priceWithDiscount(
 
 export async function getDashboardStats() {
   const db = await ensureDb();
+  const revenueCents = db.enrollments.reduce((sum, e) => {
+    const course = db.courses.find((c) => c.id === e.courseId);
+    return sum + (course?.priceCents ?? 0);
+  }, 0);
+
+  const enrollmentsByCourse = new Map<string, number>();
+  const completionsByCourse = new Map<string, number>();
+  for (const e of db.enrollments) {
+    enrollmentsByCourse.set(
+      e.courseId,
+      (enrollmentsByCourse.get(e.courseId) || 0) + 1,
+    );
+    if (e.status === "completed") {
+      completionsByCourse.set(
+        e.courseId,
+        (completionsByCourse.get(e.courseId) || 0) + 1,
+      );
+    }
+  }
+
+  const popularCourses = [...enrollmentsByCourse.entries()]
+    .map(([courseId, count]) => {
+      const course = db.courses.find((c) => c.id === courseId);
+      return {
+        courseId,
+        title: course?.title || "Unknown course",
+        enrollments: count,
+        completions: completionsByCourse.get(courseId) || 0,
+        revenueCents: count * (course?.priceCents || 0),
+      };
+    })
+    .sort((a, b) => b.enrollments - a.enrollments)
+    .slice(0, 8);
+
+  const instructors = db.users.filter((u) => u.role === "teacher");
+  const instructorPerformance = instructors.map((instructor) => {
+    const studentIds = new Set(
+      db.users
+        .filter((u) => u.role === "student" && u.teacherId === instructor.id)
+        .map((u) => u.id),
+    );
+    const related = db.enrollments.filter((e) => studentIds.has(e.userId));
+    return {
+      instructorId: instructor.id,
+      name: instructor.name,
+      students: studentIds.size,
+      enrollments: related.length,
+      completions: related.filter((e) => e.status === "completed").length,
+    };
+  });
+
+  const openTickets = db.tickets.filter((t) => t.status === "open").length;
+
   return {
     students: db.users.filter((u) => u.role === "student").length,
-    teachers: db.users.filter((u) => u.role === "teacher").length,
+    teachers: instructors.length,
     courses: db.courses.length,
     publishedCourses: db.courses.filter((c) => c.published).length,
     enrollments: db.enrollments.length,
     completed: db.enrollments.filter((e) => e.status === "completed").length,
     certificates: db.certificates.length,
     bundles: db.bundles.length,
-    revenueCents: db.enrollments.reduce((sum, e) => {
-      const course = db.courses.find((c) => c.id === e.courseId);
-      return sum + (course?.priceCents ?? 0);
-    }, 0),
+    reviews: db.reviews.length,
+    openTickets,
+    revenueCents,
+    popularCourses,
+    instructorPerformance,
   };
 }
 
-export type { CourseModule, ExamQuestion };
+export async function listFeaturedCourses(): Promise<Course[]> {
+  const db = await ensureDb();
+  const featured = db.courses.filter((c) => c.published && c.featured);
+  if (featured.length > 0) return featured;
+  return db.courses.filter((c) => c.published).slice(0, 3);
+}
+
+export async function listReviewsForCourse(
+  courseId: string,
+): Promise<CourseReview[]> {
+  const db = await ensureDb();
+  return db.reviews
+    .filter((r) => r.courseId === courseId)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+export async function getCourseRating(courseId: string): Promise<{
+  average: number;
+  count: number;
+}> {
+  const reviews = await listReviewsForCourse(courseId);
+  if (reviews.length === 0) return { average: 0, count: 0 };
+  const sum = reviews.reduce((acc, r) => acc + r.rating, 0);
+  return {
+    average: Math.round((sum / reviews.length) * 10) / 10,
+    count: reviews.length,
+  };
+}
+
+export async function createReview(input: {
+  courseId: string;
+  userId: string;
+  userName: string;
+  rating: number;
+  comment: string;
+}): Promise<CourseReview | { error: string }> {
+  const db = await ensureDb();
+  const rating = Math.max(1, Math.min(5, Math.round(input.rating)));
+  if (!input.comment.trim()) {
+    return { error: "Add a short review comment." };
+  }
+  const existing = db.reviews.find(
+    (r) => r.courseId === input.courseId && r.userId === input.userId,
+  );
+  if (existing) {
+    existing.rating = rating;
+    existing.comment = input.comment.trim();
+    existing.createdAt = new Date().toISOString();
+    await writeDb(db);
+    return existing;
+  }
+  const review: CourseReview = {
+    id: `review-${Date.now()}`,
+    courseId: input.courseId,
+    userId: input.userId,
+    userName: input.userName,
+    rating,
+    comment: input.comment.trim(),
+    createdAt: new Date().toISOString(),
+  };
+  db.reviews.unshift(review);
+  await writeDb(db);
+  return review;
+}
+
+export async function createSupportTicket(input: {
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+  courseId?: string;
+  userId?: string;
+}): Promise<SupportTicket | { error: string }> {
+  const db = await ensureDb();
+  if (
+    !input.name.trim() ||
+    !input.email.trim() ||
+    !input.subject.trim() ||
+    !input.message.trim()
+  ) {
+    return { error: "Please fill in all required fields." };
+  }
+  const ticket: SupportTicket = {
+    id: `ticket-${Date.now()}`,
+    name: input.name.trim(),
+    email: input.email.trim().toLowerCase(),
+    subject: input.subject.trim(),
+    message: input.message.trim(),
+    courseId: input.courseId,
+    userId: input.userId,
+    status: "open",
+    createdAt: new Date().toISOString(),
+  };
+  db.tickets.unshift(ticket);
+  await writeDb(db);
+  return ticket;
+}
+
+export async function listSupportTickets(): Promise<SupportTicket[]> {
+  const db = await ensureDb();
+  return [...db.tickets].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+export async function updateSupportTicketStatus(
+  id: string,
+  status: SupportTicket["status"],
+): Promise<SupportTicket | undefined> {
+  const db = await ensureDb();
+  const ticket = db.tickets.find((t) => t.id === id);
+  if (!ticket) return undefined;
+  ticket.status = status;
+  await writeDb(db);
+  return ticket;
+}
+
+export async function listFaqs(): Promise<FaqItem[]> {
+  const db = await ensureDb();
+  return [...db.faqs].sort((a, b) => a.sortOrder - b.sortOrder);
+}
+
+export async function listPublishedTestimonials(): Promise<Testimonial[]> {
+  const db = await ensureDb();
+  return db.testimonials.filter((t) => t.published);
+}
+
+export async function updateInstructorProfile(
+  id: string,
+  patch: { credentials?: string; bio?: string; photoUrl?: string; name?: string },
+): Promise<User | undefined> {
+  const db = await ensureDb();
+  const user = db.users.find((u) => u.id === id && u.role === "teacher");
+  if (!user) return undefined;
+  if (patch.name) user.name = patch.name.trim();
+  if (patch.credentials !== undefined) user.credentials = patch.credentials.trim();
+  if (patch.bio !== undefined) user.bio = patch.bio.trim();
+  if (patch.photoUrl !== undefined) user.photoUrl = patch.photoUrl.trim();
+  await writeDb(db);
+  return user;
+}
+
+export type { CourseModule, ExamQuestion, CourseReview, SupportTicket, FaqItem, Testimonial };

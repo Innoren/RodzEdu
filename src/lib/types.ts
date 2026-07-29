@@ -7,6 +7,10 @@ export type User = {
   name: string;
   role: Role;
   teacherId?: string;
+  /** Public instructor bio fields */
+  credentials?: string;
+  bio?: string;
+  photoUrl?: string;
 };
 
 export type ExamQuestion = {
@@ -33,6 +37,7 @@ export type Course = {
   priceCents: number;
   description: string;
   published: boolean;
+  featured: boolean;
   /** Legacy overview text; modules are the primary learning path. */
   content: string;
   modules: CourseModule[];
@@ -40,6 +45,16 @@ export type Course = {
   instructorId?: string;
   createdAt: string;
   updatedAt: string;
+};
+
+export type CourseReview = {
+  id: string;
+  courseId: string;
+  userId: string;
+  userName: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
 };
 
 export type EnrollmentStatus =
@@ -102,6 +117,35 @@ export type DiscountCode = {
   createdAt: string;
 };
 
+export type SupportTicketStatus = "open" | "in_progress" | "resolved";
+
+export type SupportTicket = {
+  id: string;
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+  courseId?: string;
+  userId?: string;
+  status: SupportTicketStatus;
+  createdAt: string;
+};
+
+export type FaqItem = {
+  id: string;
+  question: string;
+  answer: string;
+  sortOrder: number;
+};
+
+export type Testimonial = {
+  id: string;
+  name: string;
+  credentials: string;
+  quote: string;
+  published: boolean;
+};
+
 export type SiteSettings = {
   companyName: string;
   tagline: string;
@@ -118,5 +162,9 @@ export type Database = {
   certificates: Certificate[];
   bundles: Bundle[];
   discountCodes: DiscountCode[];
+  reviews: CourseReview[];
+  tickets: SupportTicket[];
+  faqs: FaqItem[];
+  testimonials: Testimonial[];
   settings: SiteSettings;
 };

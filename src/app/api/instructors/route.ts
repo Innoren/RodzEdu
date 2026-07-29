@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
-import { createInstructor, listInstructors } from "@/lib/db";
+import {
+  createInstructor,
+  listInstructors,
+  updateInstructorProfile,
+} from "@/lib/db";
 
 export async function GET() {
   const user = await getSessionUser();
@@ -24,6 +28,8 @@ export async function POST(request: Request) {
     name: String(body.name || ""),
     email: String(body.email || ""),
     password: String(body.password || ""),
+    credentials: body.credentials ? String(body.credentials) : undefined,
+    bio: body.bio ? String(body.bio) : undefined,
   });
 
   if ("error" in result) {
@@ -31,5 +37,27 @@ export async function POST(request: Request) {
   }
 
   const { password: _p, ...safe } = result.user;
+  return NextResponse.json({ instructor: safe });
+}
+
+export async function PATCH(request: Request) {
+  const user = await getSessionUser();
+  if (!user || (user.role !== "admin" && user.role !== "ceo")) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const body = await request.json();
+  const updated = await updateInstructorProfile(String(body.id || ""), {
+    name: body.name ? String(body.name) : undefined,
+    credentials:
+      body.credentials !== undefined ? String(body.credentials) : undefined,
+    bio: body.bio !== undefined ? String(body.bio) : undefined,
+  });
+
+  if (!updated) {
+    return NextResponse.json({ error: "Instructor not found." }, { status: 404 });
+  }
+
+  const { password: _p, ...safe } = updated;
   return NextResponse.json({ instructor: safe });
 }

@@ -1,14 +1,19 @@
 import Link from "next/link";
 import { connection } from "next/server";
-import { listPublishedCourses, getSettings } from "@/lib/db";
+import {
+  getSettings,
+  listFeaturedCourses,
+  listPublishedTestimonials,
+} from "@/lib/db";
 import { formatMoney } from "@/lib/format";
 
 export default async function HomePage() {
   // Opt into a fresh request so Office Hours / contact details stay live.
   await connection();
-  const [courses, settings] = await Promise.all([
-    listPublishedCourses(),
+  const [courses, settings, testimonials] = await Promise.all([
+    listFeaturedCourses(),
     getSettings(),
+    listPublishedTestimonials(),
   ]);
 
   return (
@@ -124,13 +129,14 @@ export default async function HomePage() {
           </div>
 
           <div className="mt-10 divide-y divide-line border-y border-line">
-            {courses.slice(0, 3).map((course) => (
+            {courses.map((course) => (
               <article
                 key={course.id}
                 className="grid gap-4 py-7 md:grid-cols-[1fr_auto] md:items-center"
               >
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.12em] text-teal">
+                    {course.featured ? "Featured · " : ""}
                     {course.category} · {course.credits} CE credits
                   </p>
                   <h3 className="mt-2 font-[family-name:var(--font-display)] text-2xl text-navy md:text-[1.75rem]">
@@ -162,6 +168,30 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+
+      {testimonials.length > 0 ? (
+        <section className="section" id="testimonials">
+          <div className="section-inner">
+            <p className="eyebrow">From the imaging floor</p>
+            <h2 className="mt-3 max-w-2xl font-[family-name:var(--font-display)] text-3xl text-navy md:text-4xl">
+              What technologists say about RodzEdu
+            </h2>
+            <div className="mt-10 divide-y divide-line border-y border-line">
+              {testimonials.map((item) => (
+                <blockquote key={item.id} className="py-7">
+                  <p className="max-w-3xl text-lg leading-relaxed text-ink/90">
+                    “{item.quote}”
+                  </p>
+                  <footer className="mt-3 text-sm text-muted">
+                    <span className="font-semibold text-navy">{item.name}</span>
+                    {item.credentials ? ` · ${item.credentials}` : ""}
+                  </footer>
+                </blockquote>
+              ))}
+            </div>
+          </div>
+        </section>
+      ) : null}
 
       <section className="section" id="how-it-works">
         <div className="section-inner">

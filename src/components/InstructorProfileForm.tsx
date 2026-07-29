@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
+import type { User } from "@/lib/types";
 
-export function InstructorForm() {
+export function InstructorProfileForm({ instructor }: { instructor: User }) {
   const router = useRouter();
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -16,12 +17,11 @@ export function InstructorForm() {
     setMessage("");
     const form = new FormData(event.currentTarget);
     const res = await fetch("/api/instructors", {
-      method: "POST",
+      method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        id: instructor.id,
         name: form.get("name"),
-        email: form.get("email"),
-        password: form.get("password"),
         credentials: form.get("credentials"),
         bio: form.get("bio"),
       }),
@@ -29,59 +29,46 @@ export function InstructorForm() {
     const data = await res.json();
     setSaving(false);
     if (!res.ok) {
-      setError(data.error || "Unable to create instructor.");
+      setError(data.error || "Unable to update instructor.");
       return;
     }
-    setMessage(`Instructor ${data.instructor.name} added.`);
-    event.currentTarget.reset();
+    setMessage("Profile updated.");
     router.refresh();
   }
 
   return (
-    <form onSubmit={onSubmit} className="panel space-y-4 p-6">
+    <form onSubmit={onSubmit} className="mt-4 space-y-3 border-t border-line pt-4">
       <label className="block text-sm font-medium text-navy">
-        Full name
-        <input name="name" required className="mt-1 w-full border border-line px-3 py-2" />
-      </label>
-      <label className="block text-sm font-medium text-navy">
-        Email
+        Public name
         <input
-          name="email"
-          type="email"
+          name="name"
           required
+          defaultValue={instructor.name}
           className="mt-1 w-full border border-line px-3 py-2"
         />
       </label>
       <label className="block text-sm font-medium text-navy">
-        Temporary password
-        <input
-          name="password"
-          type="text"
-          required
-          minLength={6}
-          className="mt-1 w-full border border-line px-3 py-2"
-        />
-      </label>
-      <label className="block text-sm font-medium text-navy">
-        Credentials (public)
+        Credentials
         <input
           name="credentials"
+          defaultValue={instructor.credentials || ""}
           placeholder="RT(R)(M), BS"
           className="mt-1 w-full border border-line px-3 py-2"
         />
       </label>
       <label className="block text-sm font-medium text-navy">
-        Bio (public)
+        Bio
         <textarea
           name="bio"
           rows={3}
+          defaultValue={instructor.bio || ""}
           className="mt-1 w-full border border-line px-3 py-2"
         />
       </label>
       {error && <p className="text-sm text-danger">{error}</p>}
       {message && <p className="text-sm text-teal">{message}</p>}
-      <button type="submit" disabled={saving} className="btn btn-primary">
-        {saving ? "Adding…" : "Add instructor"}
+      <button type="submit" disabled={saving} className="btn btn-ghost !px-3 !py-2 text-sm">
+        {saving ? "Saving…" : "Save public profile"}
       </button>
     </form>
   );

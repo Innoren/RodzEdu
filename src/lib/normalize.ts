@@ -2,10 +2,14 @@ import type {
   Certificate,
   Course,
   CourseModule,
+  CourseReview,
   Database,
   DiscountCode,
   Enrollment,
   Bundle,
+  FaqItem,
+  SupportTicket,
+  Testimonial,
 } from "./types";
 
 function defaultModulesFromContent(course: Course): CourseModule[] {
@@ -63,6 +67,7 @@ export function normalizeDatabase(raw: unknown): Database {
         : defaultModulesFromContent(course);
     return {
       ...course,
+      featured: Boolean(course.featured),
       modules,
       examQuestions: Array.isArray(course.examQuestions)
         ? course.examQuestions
@@ -87,6 +92,10 @@ export function normalizeDatabase(raw: unknown): Database {
     certificates: (db.certificates || []) as Certificate[],
     bundles: (db.bundles || []) as Bundle[],
     discountCodes: (db.discountCodes || []) as DiscountCode[],
+    reviews: (db.reviews || []) as CourseReview[],
+    tickets: (db.tickets || []) as SupportTicket[],
+    faqs: (db.faqs || []) as FaqItem[],
+    testimonials: (db.testimonials || []) as Testimonial[],
     settings: db.settings!,
   };
 }

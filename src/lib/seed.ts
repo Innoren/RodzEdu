@@ -1,11 +1,15 @@
 import type { Course, Database } from "./types";
 
 function withModules(
-  course: Omit<Course, "modules"> & { modules?: Course["modules"] },
+  course: Omit<Course, "modules" | "featured"> & {
+    modules?: Course["modules"];
+    featured?: boolean;
+  },
 ): Course {
-  if (course.modules?.length) return course as Course;
+  const base = { ...course, featured: Boolean(course.featured) };
+  if (course.modules?.length) return { ...base, modules: course.modules } as Course;
   return {
-    ...course,
+    ...base,
     modules: [
       {
         id: `${course.id}-mod-1`,
@@ -77,8 +81,10 @@ export const seedData: Database = {
       id: "user-teacher",
       email: "teacher@rodzedu.com",
       password: "teacher123",
-      name: "Dr. Morgan Ellis",
+      name: "Pedro Rodriguez",
       role: "teacher",
+      credentials: "BSRS, RT(R)(CT)(MR)",
+      bio: "Registered radiologic technologist with clinical experience in MRI, CT, and diagnostic radiography. Founder and lead instructor of RodzEdu, focused on practical, evidence-based continuing education for imaging professionals.",
     },
     {
       id: "user-student-1",
@@ -108,6 +114,7 @@ export const seedData: Database = {
       description:
         "A focused review of radiographic technique, patient positioning, and image quality essentials for practicing technologists.",
       published: true,
+      featured: true,
       content:
         "This course covers exposure factors, contrast and density relationships, grids, collimation, and common positioning series. Complete all modules, then take the online exam to earn your CE certificate.",
       instructorId: "user-teacher",
@@ -165,6 +172,7 @@ export const seedData: Database = {
       description:
         "Core mammography imaging principles, quality control concepts, and patient care considerations for CE credit.",
       published: true,
+      featured: true,
       content:
         "Explore breast anatomy for imaging, standard projections, compression technique, and quality assurance workflows used in mammography departments.",
       instructorId: "user-teacher",
@@ -216,6 +224,7 @@ export const seedData: Database = {
       description:
         "Practical CT dose optimization strategies and patient safety practices for CT technologists.",
       published: true,
+      featured: false,
       content:
         "Review ALARA principles in CT, automatic exposure control, pediatric considerations, and communication strategies that support safer imaging.",
       instructorId: "user-teacher",
@@ -306,6 +315,92 @@ export const seedData: Database = {
       redemptionCount: 0,
       maxRedemptions: 500,
       createdAt: "2026-04-01T12:00:00.000Z",
+    },
+  ],
+  reviews: [
+    {
+      id: "review-1",
+      courseId: "course-rad-fundamentals",
+      userId: "user-student-2",
+      userName: "Jamie Chen",
+      rating: 5,
+      comment:
+        "Clear modules and a fair exam. Exactly what I needed for renewal without wasting a weekend.",
+      createdAt: "2026-07-01T12:00:00.000Z",
+    },
+    {
+      id: "review-2",
+      courseId: "course-mammo-basics",
+      userId: "user-student-1",
+      userName: "Sam Rivera",
+      rating: 4,
+      comment:
+        "Practical content that matches what we do on the floor. Progress saving made studying around shifts easy.",
+      createdAt: "2026-07-05T12:00:00.000Z",
+    },
+  ],
+  tickets: [],
+  faqs: [
+    {
+      id: "faq-1",
+      question: "Are RodzEdu credits accepted for ARRT® renewal?",
+      answer:
+        "RodzEdu courses are designed around Category A / A+ style continuing education for radiologic technologists. Always confirm acceptance with your state licensing board or credentialing body for your specific renewal requirements.",
+      sortOrder: 1,
+    },
+    {
+      id: "faq-2",
+      question: "Can I save progress and finish later?",
+      answer:
+        "Yes. Complete modules at your own pace. Your progress is saved so you can return after a shift and pick up where you left off before taking the final exam.",
+      sortOrder: 2,
+    },
+    {
+      id: "faq-3",
+      question: "How do I get my certificate?",
+      answer:
+        "After you pass the final exam with a score of 75% or higher, your certificate is issued automatically. Download or print it from your student portal at any time.",
+      sortOrder: 3,
+    },
+    {
+      id: "faq-4",
+      question: "Do you offer bundles or discount codes?",
+      answer:
+        "Yes. Course bundles appear in the catalog when available, and you can enter a discount code at checkout. Contact us if you need an employer or group option.",
+      sortOrder: 4,
+    },
+    {
+      id: "faq-5",
+      question: "Who do I contact for help with a course?",
+      answer:
+        "Use the contact form, email support during office hours, or open Help from your student learning page for the specific course you are taking.",
+      sortOrder: 5,
+    },
+  ],
+  testimonials: [
+    {
+      id: "testimonial-1",
+      name: "Sam Rivera",
+      credentials: "RT(R), Louisville, KY",
+      quote:
+        "RodzEdu made renewal straightforward — clear modules, a real exam, and a certificate I could download the same day I passed.",
+      published: true,
+    },
+    {
+      id: "testimonial-2",
+      name: "Jamie Chen",
+      credentials: "RT(R)(M), outpatient imaging",
+      quote:
+        "I studied between shifts and never lost my place. The content felt written for working techs, not filler hours.",
+      published: true,
+    },
+    {
+      id: "testimonial-3",
+      name: "Alex Morgan",
+      credentials: "CT technologist",
+      quote:
+        "Transparent pricing and support when I had an order question. That alone made me trust the platform.",
+      published: true,
     },
   ],
 };

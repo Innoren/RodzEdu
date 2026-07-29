@@ -26,11 +26,14 @@ export async function SiteHeader() {
           <Link href="/courses" className="hover:text-teal">
             Courses
           </Link>
+          <Link href="/instructors" className="hover:text-teal">
+            Instructors
+          </Link>
           <Link href="/about" className="hover:text-teal">
             About
           </Link>
-          <Link href="/#how-it-works" className="hover:text-teal">
-            How It Works
+          <Link href="/faq" className="hover:text-teal">
+            FAQ
           </Link>
           <Link href="/contact" className="hover:text-teal">
             Contact

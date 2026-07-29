@@ -16,6 +16,8 @@ const linksByRole: Record<Role, { href: string; label: string }[]> = {
   admin: [
     { href: "/admin", label: "Course Manager" },
     { href: "/admin/new", label: "Upload Course" },
+    { href: "/admin/reports", label: "Reports" },
+    { href: "/admin/support", label: "Support Tickets" },
     { href: "/admin/instructors", label: "Instructors" },
     { href: "/admin/bundles", label: "Bundles" },
     { href: "/admin/discounts", label: "Discount Codes" },
@@ -23,8 +25,10 @@ const linksByRole: Record<Role, { href: string; label: string }[]> = {
   ],
   ceo: [
     { href: "/ceo", label: "Company Overview" },
+    { href: "/ceo/reports", label: "Reports" },
     { href: "/ceo/settings", label: "Site Settings" },
     { href: "/admin", label: "Courses" },
+    { href: "/admin/support", label: "Support Tickets" },
     { href: "/admin/instructors", label: "Instructors" },
     { href: "/admin/bundles", label: "Bundles" },
     { href: "/admin/discounts", label: "Discounts" },

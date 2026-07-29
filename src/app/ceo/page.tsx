@@ -34,7 +34,12 @@ export default async function CeoOverviewPage() {
             steer the business without mixing into student or exam workflows.
           </p>
         </div>
-        <OpenCeoConsole />
+        <div className="flex flex-wrap gap-3">
+          <Link href="/ceo/reports" className="btn btn-primary">
+            Open reports
+          </Link>
+          <OpenCeoConsole />
+        </div>
       </div>
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

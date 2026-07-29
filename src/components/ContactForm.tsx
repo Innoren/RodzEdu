@@ -1,10 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 
-export function InstructorForm() {
-  const router = useRouter();
+export function ContactForm({
+  defaultEmail = "",
+  defaultName = "",
+  courseId,
+  courseTitle,
+}: {
+  defaultEmail?: string;
+  defaultName?: string;
+  courseId?: string;
+  courseTitle?: string;
+}) {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -15,33 +23,42 @@ export function InstructorForm() {
     setError("");
     setMessage("");
     const form = new FormData(event.currentTarget);
-    const res = await fetch("/api/instructors", {
+    const res = await fetch("/api/support", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         name: form.get("name"),
         email: form.get("email"),
-        password: form.get("password"),
-        credentials: form.get("credentials"),
-        bio: form.get("bio"),
+        subject: form.get("subject"),
+        message: form.get("message"),
+        courseId: courseId || form.get("courseId") || undefined,
       }),
     });
     const data = await res.json();
     setSaving(false);
     if (!res.ok) {
-      setError(data.error || "Unable to create instructor.");
+      setError(data.error || "Unable to send your message.");
       return;
     }
-    setMessage(`Instructor ${data.instructor.name} added.`);
+    setMessage("Message received. Our team will follow up during office hours.");
     event.currentTarget.reset();
-    router.refresh();
   }
 
   return (
-    <form onSubmit={onSubmit} className="panel space-y-4 p-6">
+    <form onSubmit={onSubmit} className="space-y-4">
+      {courseTitle ? (
+        <p className="rounded-sm border border-teal/30 bg-teal/10 px-3 py-2 text-sm text-navy">
+          Help request for: <strong>{courseTitle}</strong>
+        </p>
+      ) : null}
       <label className="block text-sm font-medium text-navy">
-        Full name
-        <input name="name" required className="mt-1 w-full border border-line px-3 py-2" />
+        Name
+        <input
+          name="name"
+          required
+          defaultValue={defaultName}
+          className="mt-1 w-full border border-line px-3 py-2"
+        />
       </label>
       <label className="block text-sm font-medium text-navy">
         Email
@@ -49,39 +66,33 @@ export function InstructorForm() {
           name="email"
           type="email"
           required
+          defaultValue={defaultEmail}
           className="mt-1 w-full border border-line px-3 py-2"
         />
       </label>
       <label className="block text-sm font-medium text-navy">
-        Temporary password
+        Subject
         <input
-          name="password"
-          type="text"
+          name="subject"
           required
-          minLength={6}
+          defaultValue={courseTitle ? `Help with ${courseTitle}` : ""}
           className="mt-1 w-full border border-line px-3 py-2"
         />
       </label>
       <label className="block text-sm font-medium text-navy">
-        Credentials (public)
-        <input
-          name="credentials"
-          placeholder="RT(R)(M), BS"
-          className="mt-1 w-full border border-line px-3 py-2"
-        />
-      </label>
-      <label className="block text-sm font-medium text-navy">
-        Bio (public)
+        Message
         <textarea
-          name="bio"
-          rows={3}
+          name="message"
+          required
+          rows={5}
           className="mt-1 w-full border border-line px-3 py-2"
+          placeholder="How can we help?"
         />
       </label>
       {error && <p className="text-sm text-danger">{error}</p>}
       {message && <p className="text-sm text-teal">{message}</p>}
       <button type="submit" disabled={saving} className="btn btn-primary">
-        {saving ? "Adding…" : "Add instructor"}
+        {saving ? "Sending…" : "Send message"}
       </button>
     </form>
   );

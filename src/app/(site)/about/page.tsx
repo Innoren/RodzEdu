@@ -1,6 +1,12 @@
 import Link from "next/link";
 import Image from "next/image";
 
+export const metadata = {
+  title: "About the Founder | RodzEdu",
+  description:
+    "Meet Pedro Rodriguez, BSRS, RT(R)(CT)(MR) — founder of RodzEdu and lead instructor for practical radiology continuing education.",
+};
+
 export default function AboutFounderPage() {
   return (
     <>
@@ -109,8 +115,11 @@ export default function AboutFounderPage() {
             <Link href="/courses" className="btn btn-primary">
               Browse CE courses
             </Link>
-            <Link href="/contact" className="btn btn-ghost">
-              Contact RodzEdu
+            <Link href="/instructors" className="btn btn-ghost">
+              Meet instructors
+            </Link>
+            <Link href="/trust" className="btn btn-ghost">
+              Trust &amp; standards
             </Link>
           </div>
         </div>

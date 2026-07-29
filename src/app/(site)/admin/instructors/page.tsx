@@ -1,7 +1,9 @@
+import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { listInstructors } from "@/lib/db";
 import { PortalNav } from "@/components/PortalNav";
 import { InstructorForm } from "@/components/InstructorForm";
+import { InstructorProfileForm } from "@/components/InstructorProfileForm";
 
 export default async function InstructorsPage() {
   const user = await requireUser(["admin", "ceo"]);
@@ -17,8 +19,13 @@ export default async function InstructorsPage() {
             Instructors
           </h1>
           <p className="mt-3 mb-6 text-muted">
-            Add instructors anytime. New teacher accounts can sign in and view
-            assigned student progress.
+            Add instructors and edit public bios shown on the instructors page
+            and course detail pages.
+          </p>
+          <p className="mb-6 text-sm">
+            <Link href="/instructors" className="font-semibold text-teal hover:underline">
+              View public instructors page →
+            </Link>
           </p>
           <InstructorForm />
           <div className="mt-8 space-y-3">
@@ -26,6 +33,12 @@ export default async function InstructorsPage() {
               <article key={instructor.id} className="panel p-4">
                 <p className="font-semibold text-navy">{instructor.name}</p>
                 <p className="text-sm text-muted">{instructor.email}</p>
+                {instructor.credentials ? (
+                  <p className="mt-1 text-xs font-semibold uppercase tracking-[0.12em] text-teal">
+                    {instructor.credentials}
+                  </p>
+                ) : null}
+                <InstructorProfileForm instructor={instructor} />
               </article>
             ))}
           </div>

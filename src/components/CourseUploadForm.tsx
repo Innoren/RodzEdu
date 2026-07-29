@@ -85,6 +85,7 @@ export function CourseUploadForm() {
       description: form.get("description"),
       content,
       published: form.get("published") === "on",
+      featured: form.get("featured") === "on",
       modules: [
         {
           title: "Module 1 — Foundations",
@@ -410,6 +411,10 @@ export function CourseUploadForm() {
       <label className="flex items-center gap-2 text-sm text-navy">
         <input type="checkbox" name="published" defaultChecked />
         Publish to catalog immediately
+      </label>
+      <label className="flex items-center gap-2 text-sm text-navy">
+        <input type="checkbox" name="featured" />
+        Feature on homepage and catalog
       </label>
 
       <button type="submit" disabled={saving} className="btn btn-primary">

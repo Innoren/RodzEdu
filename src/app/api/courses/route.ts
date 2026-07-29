@@ -67,6 +67,7 @@ export async function POST(request: Request) {
     content,
     modules,
     published: Boolean(body.published),
+    featured: Boolean(body.featured),
     examQuestions,
   });
 
