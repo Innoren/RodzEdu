@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { getDashboardStats, listAllCourses, listUsers } from "@/lib/db";
 import { formatMoney } from "@/lib/format";
-import { OpenCeoConsole } from "@/components/OpenCeoConsole";
 
 export default async function CeoOverviewPage() {
   const [stats, courses, users] = await Promise.all([
@@ -30,16 +29,13 @@ export default async function CeoOverviewPage() {
             Manage RodzEdu from this console
           </h1>
           <p className="mt-3 max-w-2xl text-muted">
-            This console is designed to open in its own window so the CEO can
-            steer the business without mixing into student or exam workflows.
+            Use this console to steer the business without mixing into student
+            or exam workflows.
           </p>
         </div>
-        <div className="flex flex-wrap gap-3">
-          <Link href="/ceo/reports" className="btn btn-primary">
-            Open reports
-          </Link>
-          <OpenCeoConsole />
-        </div>
+        <Link href="/ceo/reports" className="btn btn-primary">
+          Open reports
+        </Link>
       </div>
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

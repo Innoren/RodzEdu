@@ -112,6 +112,14 @@ function migrateGrowthCollections(db: Database): boolean {
     }
   }
 
+  const ceo = db.users.find(
+    (u) => u.role === "ceo" || u.email === "ceo@rodzedu.com",
+  );
+  if (ceo && ceo.name !== "Pedro Rodriguez") {
+    ceo.name = "Pedro Rodriguez";
+    dirty = true;
+  }
+
   return dirty;
 }
 

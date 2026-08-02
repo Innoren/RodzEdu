@@ -67,7 +67,7 @@ export const seedData: Database = {
       id: "user-ceo",
       email: "ceo@rodzedu.com",
       password: "ceo123",
-      name: "Alex Rodz",
+      name: "Pedro Rodriguez",
       role: "ceo",
     },
     {
