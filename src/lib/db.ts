@@ -509,6 +509,28 @@ export async function resetEnrollmentModules(
   return enrollment;
 }
 
+/** Reset every student enrollment (modules, exam status, certificates). */
+export async function resetAllStudentProgress(): Promise<{
+  enrollmentsReset: number;
+  certificatesRemoved: number;
+}> {
+  const db = await ensureDb();
+  const studentIds = new Set(
+    db.users.filter((u) => u.role === "student").map((u) => u.id),
+  );
+  let enrollmentsReset = 0;
+  for (const enrollment of db.enrollments) {
+    if (!studentIds.has(enrollment.userId)) continue;
+    clearEnrollmentProgress(enrollment);
+    enrollmentsReset += 1;
+  }
+  const before = db.certificates.length;
+  db.certificates = db.certificates.filter((c) => !studentIds.has(c.userId));
+  const certificatesRemoved = before - db.certificates.length;
+  await writeDb(db);
+  return { enrollmentsReset, certificatesRemoved };
+}
+
 /** Move an enrollment to a different course and reset progress. */
 export async function reassignEnrollmentCourse(
   enrollmentId: string,
