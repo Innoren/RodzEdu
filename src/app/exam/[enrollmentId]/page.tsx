@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import { getCourseById, getEnrollmentById } from "@/lib/db";
@@ -28,15 +29,26 @@ export default async function ExamPage({
           </h1>
           <p className="mt-3 text-muted">
             Complete 100% of the course content in your student portal before
-            opening this exam window.
+            taking this exam.
           </p>
+          <Link
+            href={`/student/learn/${enrollment.id}`}
+            className="btn btn-primary mt-6"
+          >
+            Return to modules
+          </Link>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="exam-shell px-5 py-8">
+    <div className="exam-shell min-h-screen px-5 py-8">
+      <div className="mx-auto mb-4 max-w-3xl">
+        <Link href="/student" className="text-sm font-semibold text-teal">
+          ← Back to my progress
+        </Link>
+      </div>
       <ExamClient enrollmentId={enrollment.id} course={course} />
     </div>
   );

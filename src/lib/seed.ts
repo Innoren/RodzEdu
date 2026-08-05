@@ -124,6 +124,8 @@ export const seedData: Database = {
           prompt: "Increasing kVp primarily affects which image quality factor?",
           choices: ["Spatial resolution", "Subject contrast", "Motion blur", "Focal spot size"],
           correctIndex: 1,
+          explanation:
+            "Higher kVp increases beam energy and penetration, which reduces differential absorption and lowers subject contrast.",
         },
         {
           id: "q2",
@@ -135,6 +137,8 @@ export const seedData: Database = {
             "Eliminate the need for grids",
           ],
           correctIndex: 1,
+          explanation:
+            "Tight collimation limits the irradiated field, reducing scatter reaching the image receptor and improving contrast while also lowering unnecessary dose.",
         },
         {
           id: "q3",
@@ -146,6 +150,8 @@ export const seedData: Database = {
             "Patient motion is present",
           ],
           correctIndex: 1,
+          explanation:
+            "Grids clean up scatter. They are most valuable when scatter is high, such as thicker body parts and higher kVp techniques.",
         },
         {
           id: "q4",
@@ -157,6 +163,8 @@ export const seedData: Database = {
             "Detector bit depth",
           ],
           correctIndex: 0,
+          explanation:
+            "Alignment and source-to-image distance affect geometric relationships in the image, including magnification and shape distortion.",
         },
       ],
       createdAt: "2026-01-10T12:00:00.000Z",
@@ -187,6 +195,8 @@ export const seedData: Database = {
             "Increases scatter production",
           ],
           correctIndex: 1,
+          explanation:
+            "Compression immobilizes tissue, reduces thickness, decreases scatter and motion blur, and typically lowers the dose needed for adequate exposure.",
         },
         {
           id: "q2",
@@ -198,6 +208,8 @@ export const seedData: Database = {
             "Fluoroscopy modes",
           ],
           correctIndex: 1,
+          explanation:
+            "Craniocaudal (CC) and mediolateral oblique (MLO) are the standard screening mammography projections.",
         },
         {
           id: "q3",
@@ -209,6 +221,8 @@ export const seedData: Database = {
             "Replace continuing education",
           ],
           correctIndex: 1,
+          explanation:
+            "Quality control verifies that equipment and imaging processes remain within acceptable performance limits so image quality stays reliable.",
         },
       ],
       createdAt: "2026-02-01T12:00:00.000Z",
@@ -239,6 +253,8 @@ export const seedData: Database = {
             "Applied Linear Attenuation Rating Average",
           ],
           correctIndex: 0,
+          explanation:
+            "ALARA is the radiation protection principle of keeping dose as low as reasonably achievable while still meeting the clinical imaging goal.",
         },
         {
           id: "q2",
@@ -250,6 +266,8 @@ export const seedData: Database = {
             "Eliminate the need for protocols",
           ],
           correctIndex: 1,
+          explanation:
+            "AEC / tube-current modulation adjusts mA based on attenuation so thinner regions use less dose and thicker regions maintain image quality.",
         },
         {
           id: "q3",
@@ -261,6 +279,8 @@ export const seedData: Database = {
             "Removing shielding policies",
           ],
           correctIndex: 1,
+          explanation:
+            "Children are more radiosensitive, so protocols are sized down with technique and coverage appropriate to smaller patients.",
         },
       ],
       createdAt: "2026-03-01T12:00:00.000Z",
@@ -365,6 +385,8 @@ Before the final exam, review:
             "Public hallways",
           ],
           correctIndex: 1,
+          explanation:
+            "Zone IV is the magnet room itself — the highest-risk area where the static field is strongest and access is tightly controlled.",
         },
         {
           id: "mri-ex-2",
@@ -376,6 +398,8 @@ Before the final exam, review:
             "Cool the magnet",
           ],
           correctIndex: 1,
+          explanation:
+            "The strong static field can pull ferromagnetic objects into the bore at high speed, creating a projectile hazard to patients and staff.",
         },
         {
           id: "mri-ex-3",
@@ -387,6 +411,8 @@ Before the final exam, review:
             "Previous CT contrast brand only",
           ],
           correctIndex: 0,
+          explanation:
+            "Screening identifies implants, surgical history, and metal exposure that could make MRI unsafe or require special conditions before scanning.",
         },
         {
           id: "mri-ex-4",
@@ -398,6 +424,8 @@ Before the final exam, review:
             "Disabled during code situations automatically",
           ],
           correctIndex: 1,
+          explanation:
+            "Clinical superconducting magnets remain energized; the static field is present even when no sequence is running.",
         },
         {
           id: "mri-ex-5",
@@ -409,6 +437,8 @@ Before the final exam, review:
             "Mark the exam as completed without imaging",
           ],
           correctIndex: 1,
+          explanation:
+            "Unverified implants are a safety risk. Pause the exam and confirm documentation or guidance from the radiologist/MRI safety lead before continuing.",
         },
         {
           id: "mri-ex-6",
@@ -420,6 +450,8 @@ Before the final exam, review:
             "The reading room for radiologists only",
           ],
           correctIndex: 1,
+          explanation:
+            "Zone III is the restricted buffer around the magnet where screening and access control prevent unsafe items or unscreened people from approaching Zone IV.",
         },
         {
           id: "mri-ex-7",
@@ -431,6 +463,8 @@ Before the final exam, review:
             "It prevents all implant heating",
           ],
           correctIndex: 0,
+          explanation:
+            "Gradient switching produces loud acoustic noise; hearing protection reduces the risk of temporary or permanent hearing injury during scanning.",
         },
         {
           id: "mri-ex-8",
@@ -442,6 +476,8 @@ Before the final exam, review:
             "It does not require documentation",
           ],
           correctIndex: 1,
+          explanation:
+            "MR Conditional devices are not universally safe — they may be scanned only when labeled conditions (such as field strength, SAR, or body region) are met.",
         },
       ],
       createdAt: "2026-07-01T12:00:00.000Z",

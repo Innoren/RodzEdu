@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
-import type { Course } from "@/lib/types";
+import type { Course, ExamAnswerReview } from "@/lib/types";
 
 export function ExamClient({
   enrollmentId,
@@ -18,6 +19,7 @@ export function ExamClient({
     score: number;
     passed: boolean;
     certificateId?: string;
+    review: ExamAnswerReview[];
   } | null>(null);
   const [error, setError] = useState("");
 
@@ -34,55 +36,114 @@ export function ExamClient({
 
     setSubmitting(true);
     setError("");
-    const res = await fetch("/api/exam/submit", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ enrollmentId, answers }),
-    });
-    const data = await res.json();
-    setSubmitting(false);
+    try {
+      const res = await fetch("/api/exam/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enrollmentId, answers }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "Unable to submit exam.");
+        return;
+      }
 
-    if (!res.ok) {
-      setError(data.error || "Unable to submit exam.");
-      return;
+      setResult({
+        score: data.score,
+        passed: data.passed,
+        certificateId: data.certificate?.id || data.enrollment?.certificateId,
+        review: Array.isArray(data.review) ? data.review : [],
+      });
+    } catch {
+      setError("Unable to submit exam. Please try again.");
+    } finally {
+      setSubmitting(false);
     }
-
-    setResult({
-      score: data.score,
-      passed: data.passed,
-      certificateId: data.certificate?.id || data.enrollment?.certificateId,
-    });
   }
 
   if (result) {
     return (
-      <div className="panel mx-auto max-w-xl p-8 text-center">
-        <p className="eyebrow">{result.passed ? "Passed" : "Not passed"}</p>
-        <h2 className="mt-2 font-[family-name:var(--font-display)] text-4xl text-navy">
-          Score: {result.score}%
-        </h2>
-        <p className="mt-4 text-muted">
-          {result.passed
-            ? "Congratulations — your certificate was issued automatically. Download it from your student portal."
-            : "A score of 75% is required to pass. Review the course modules, then retake the exam from your portal."}
-        </p>
-        <div className="mt-6 flex flex-wrap justify-center gap-3">
-          {result.passed && result.certificateId ? (
-            <a
-              href={`/student/certificates/${result.certificateId}`}
-              className="btn btn-primary"
+      <div className="mx-auto max-w-3xl space-y-6">
+        <div className="panel p-8 text-center">
+          <p className="eyebrow">{result.passed ? "Passed" : "Not passed"}</p>
+          <h2 className="mt-2 font-[family-name:var(--font-display)] text-4xl text-navy">
+            Score: {result.score}%
+          </h2>
+          <p className="mt-4 text-muted">
+            {result.passed
+              ? "Congratulations — your certificate was issued automatically. Review your answers below, then download your certificate."
+              : "A score of 75% is required to pass. Review the feedback below, study the modules again, then retake the exam from your portal."}
+          </p>
+          <div className="mt-6 flex flex-wrap justify-center gap-3">
+            {result.passed && result.certificateId ? (
+              <Link
+                href={`/student/certificates/${result.certificateId}`}
+                className="btn btn-primary"
+              >
+                Download certificate
+              </Link>
+            ) : null}
+            <Link href="/student" className="btn btn-navy">
+              Back to my progress
+            </Link>
+            <Link
+              href={`/student/learn/${enrollmentId}`}
+              className="btn btn-ghost"
             >
-              Download certificate
-            </a>
-          ) : null}
-          <button
-            type="button"
-            onClick={() => window.close()}
-            className="btn btn-navy"
-          >
-            Close exam window
-          </button>
+              Review modules
+            </Link>
+          </div>
         </div>
+
+        <section className="space-y-4">
+          <h3 className="font-[family-name:var(--font-display)] text-2xl text-navy">
+            Answer review
+          </h3>
+          {result.review.map((item, index) => (
+            <article
+              key={item.questionId}
+              className={`panel p-5 ${
+                item.isCorrect
+                  ? "border-teal/40 bg-teal/5"
+                  : "border-danger/30 bg-red-50/60"
+              }`}
+            >
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-teal">
+                Question {index + 1} · {item.isCorrect ? "Correct" : "Incorrect"}
+              </p>
+              <p className="mt-2 font-semibold text-navy">{item.prompt}</p>
+              <div className="mt-3 space-y-2 text-sm leading-relaxed">
+                <p className="text-ink/85">
+                  <span className="font-semibold text-navy">Your answer:</span>{" "}
+                  {item.selectedChoice}
+                </p>
+                {!item.isCorrect ? (
+                  <>
+                    <p className="text-danger">
+                      <span className="font-semibold">Why this is incorrect:</span>{" "}
+                      {item.incorrectReason}
+                    </p>
+                    <p className="text-navy">
+                      <span className="font-semibold">Correct answer:</span>{" "}
+                      {item.correctChoice}
+                    </p>
+                    <p className="text-ink/85">
+                      <span className="font-semibold">Why the correct answer is right:</span>{" "}
+                      {item.correctReason}
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-ink/85">
+                    <span className="font-semibold text-navy">
+                      Why this is correct:
+                    </span>{" "}
+                    {item.correctReason}
+                  </p>
+                )}
+              </div>
+            </article>
+          ))}
+        </section>
       </div>
     );
   }
@@ -92,7 +153,7 @@ export function ExamClient({
       <div className="panel sticky top-0 z-10 mb-5 flex flex-wrap items-center justify-between gap-3 border-b-2 border-teal bg-white px-5 py-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-teal">
-            Secure exam window
+            Final exam
           </p>
           <p className="font-[family-name:var(--font-display)] text-xl text-navy">
             {course.title}
@@ -112,7 +173,7 @@ export function ExamClient({
             <div className="mt-3 space-y-2">
               {question.choices.map((choice, cIndex) => (
                 <label
-                  key={choice}
+                  key={`${question.id}-${cIndex}`}
                   className="flex cursor-pointer items-start gap-3 rounded-sm border border-transparent px-2 py-2 hover:border-line hover:bg-sand/50"
                 >
                   <input
@@ -151,13 +212,9 @@ export function ExamClient({
         >
           {submitting ? "Submitting…" : "Submit exam"}
         </button>
-        <button
-          type="button"
-          onClick={() => window.close()}
-          className="btn btn-ghost"
-        >
+        <Link href={`/student/learn/${enrollmentId}`} className="btn btn-ghost">
           Exit without submitting
-        </button>
+        </Link>
       </div>
     </div>
   );

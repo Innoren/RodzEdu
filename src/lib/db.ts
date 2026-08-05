@@ -13,6 +13,7 @@ import type {
   DiscountCode,
   Enrollment,
   EnrollmentStatus,
+  ExamAnswerReview,
   ExamQuestion,
   FaqItem,
   SiteSettings,
@@ -124,6 +125,20 @@ function migrateGrowthCollections(db: Database): boolean {
   if (exampleCourse && !db.courses.some((c) => c.id === "course-mri-safety")) {
     db.courses.unshift(structuredClone(exampleCourse));
     dirty = true;
+  }
+
+  // Backfill exam answer explanations onto existing courses when missing.
+  for (const seedCourse of seedData.courses) {
+    const live = db.courses.find((c) => c.id === seedCourse.id);
+    if (!live) continue;
+    for (const seedQ of seedCourse.examQuestions) {
+      if (!seedQ.explanation) continue;
+      const liveQ = live.examQuestions.find((q) => q.id === seedQ.id);
+      if (liveQ && !liveQ.explanation) {
+        liveQ.explanation = seedQ.explanation;
+        dirty = true;
+      }
+    }
   }
   const exampleEnrollment = seedData.enrollments.find(
     (e) => e.id === "enroll-mri-demo",
@@ -444,6 +459,7 @@ export async function submitExam(
   score: number;
   passed: boolean;
   certificate?: Certificate;
+  review: ExamAnswerReview[];
 } | null> {
   const db = await ensureDb();
   const enrollment = db.enrollments.find((e) => e.id === enrollmentId);
@@ -455,8 +471,34 @@ export async function submitExam(
 
   const total = course.examQuestions.length || 1;
   let correct = 0;
-  course.examQuestions.forEach((q, i) => {
-    if (answers[i] === q.correctIndex) correct += 1;
+  const review = course.examQuestions.map((q, i) => {
+    const selectedIndex = Number(answers[i]);
+    const isCorrect = selectedIndex === q.correctIndex;
+    if (isCorrect) correct += 1;
+
+    const selectedChoice =
+      selectedIndex >= 0 && selectedIndex < q.choices.length
+        ? q.choices[selectedIndex]
+        : "No answer selected";
+    const correctChoice = q.choices[q.correctIndex] || "Correct answer";
+    const correctReason =
+      q.explanation?.trim() ||
+      `"${correctChoice}" is correct based on the course material for this topic.`;
+    const incorrectReason = isCorrect
+      ? ""
+      : `"${selectedChoice}" is not correct for this question. It does not match the principle or definition being tested.`;
+
+    return {
+      questionId: q.id,
+      prompt: q.prompt,
+      selectedIndex,
+      correctIndex: q.correctIndex,
+      selectedChoice,
+      correctChoice,
+      isCorrect,
+      incorrectReason,
+      correctReason,
+    };
   });
 
   const score = Math.round((correct / total) * 100);
@@ -500,7 +542,7 @@ export async function submitExam(
   }
 
   await writeDb(db);
-  return { enrollment, score, passed, certificate };
+  return { enrollment, score, passed, certificate, review };
 }
 
 export async function completeModule(input: {

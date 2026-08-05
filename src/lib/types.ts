@@ -18,6 +18,22 @@ export type ExamQuestion = {
   prompt: string;
   choices: string[];
   correctIndex: number;
+  /** Shown after exam submit to explain the correct answer. */
+  explanation?: string;
+};
+
+export type ExamAnswerReview = {
+  questionId: string;
+  prompt: string;
+  selectedIndex: number;
+  correctIndex: number;
+  selectedChoice: string;
+  correctChoice: string;
+  isCorrect: boolean;
+  /** Why the selected answer is wrong (when incorrect). */
+  incorrectReason: string;
+  /** Why the correct answer is right. */
+  correctReason: string;
 };
 
 export type CourseModule = {
