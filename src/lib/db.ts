@@ -90,14 +90,17 @@ function migrateGrowthCollections(db: Database): boolean {
     db.testimonials = structuredClone(seedData.testimonials);
     dirty = true;
   }
-  if (!db.reviews.length) {
+  if (!db.reviews.length && db.courses.length) {
     const courseIds = new Set(db.courses.map((c) => c.id));
-    db.reviews = structuredClone(seedData.reviews).filter((r) =>
+    const seededReviews = structuredClone(seedData.reviews).filter((r) =>
       courseIds.has(r.courseId),
     );
-    dirty = true;
+    if (seededReviews.length) {
+      db.reviews = seededReviews;
+      dirty = true;
+    }
   }
-  if (!db.courses.some((c) => c.featured)) {
+  if (db.courses.length && !db.courses.some((c) => c.featured)) {
     for (const course of db.courses.filter((c) => c.published).slice(0, 2)) {
       course.featured = true;
       dirty = true;
@@ -121,12 +124,6 @@ function migrateGrowthCollections(db: Database): boolean {
     dirty = true;
   }
 
-  const exampleCourse = seedData.courses.find((c) => c.id === "course-mri-safety");
-  if (exampleCourse && !db.courses.some((c) => c.id === "course-mri-safety")) {
-    db.courses.unshift(structuredClone(exampleCourse));
-    dirty = true;
-  }
-
   // Backfill exam answer explanations onto existing courses when missing.
   for (const seedCourse of seedData.courses) {
     const live = db.courses.find((c) => c.id === seedCourse.id);
@@ -139,18 +136,6 @@ function migrateGrowthCollections(db: Database): boolean {
         dirty = true;
       }
     }
-  }
-  const exampleEnrollment = seedData.enrollments.find(
-    (e) => e.id === "enroll-mri-demo",
-  );
-  if (
-    exampleEnrollment &&
-    !db.enrollments.some((e) => e.id === "enroll-mri-demo") &&
-    db.users.some((u) => u.id === "user-student-1") &&
-    db.courses.some((c) => c.id === "course-mri-safety")
-  ) {
-    db.enrollments.unshift(structuredClone(exampleEnrollment));
-    dirty = true;
   }
 
   return dirty;
@@ -529,6 +514,41 @@ export async function resetAllStudentProgress(): Promise<{
   const certificatesRemoved = before - db.certificates.length;
   await writeDb(db);
   return { enrollmentsReset, certificatesRemoved };
+}
+
+/** Remove all courses and course-linked enrollments, certificates, bundles, reviews. */
+export async function clearAllCourses(): Promise<{
+  coursesRemoved: number;
+  enrollmentsRemoved: number;
+  certificatesRemoved: number;
+  bundlesRemoved: number;
+  reviewsRemoved: number;
+}> {
+  const db = await ensureDb();
+  const coursesRemoved = db.courses.length;
+  const enrollmentsRemoved = db.enrollments.length;
+  const certificatesRemoved = db.certificates.length;
+  const bundlesRemoved = db.bundles.length;
+  const reviewsRemoved = db.reviews.length;
+
+  db.courses = [];
+  db.enrollments = [];
+  db.certificates = [];
+  db.bundles = [];
+  db.reviews = [];
+  // Drop course references from open support tickets.
+  for (const ticket of db.tickets) {
+    if (ticket.courseId) delete ticket.courseId;
+  }
+
+  await writeDb(db);
+  return {
+    coursesRemoved,
+    enrollmentsRemoved,
+    certificatesRemoved,
+    bundlesRemoved,
+    reviewsRemoved,
+  };
 }
 
 /** Move an enrollment to a different course and reset progress. */
