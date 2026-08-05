@@ -266,6 +266,187 @@ export const seedData: Database = {
       createdAt: "2026-03-01T12:00:00.000Z",
       updatedAt: "2026-03-01T12:00:00.000Z",
     }),
+    {
+      id: "course-mri-safety",
+      title: "MRI Safety Essentials",
+      slug: "mri-safety-essentials",
+      category: "MRI",
+      credits: 2,
+      priceCents: 2900,
+      description:
+        "A practical introduction to MRI safety zones, screening, projectile risk, and implant considerations for imaging professionals.",
+      published: true,
+      featured: true,
+      content:
+        "MRI safety is a professional responsibility. This example course walks through zone control, patient screening, and day-to-day decisions that protect patients and staff.",
+      instructorId: "user-teacher",
+      modules: [
+        {
+          id: "course-mri-safety-mod-1",
+          title: "Module 1 — Zones, access, and the static field",
+          content: `MRI environments are organized into safety zones that control who can enter and what objects are allowed.
+
+Zone I is publicly accessible. Zone II is the interface where screening begins. Zone III is restricted because of the magnetic field. Zone IV is the magnet room itself.
+
+The static magnetic field is always on. Ferromagnetic objects can become projectiles. Hearing protection, quench awareness, and clear communication with patients and coworkers are part of everyday safe practice.
+
+Key takeaways:
+• Know your facility's zone map and badge rules
+• Treat the magnet as always active
+• Stop and escalate if screening is incomplete`,
+          quizQuestions: [
+            {
+              id: "course-mri-safety-mq1",
+              prompt: "Which MRI zone is the magnet room itself?",
+              choices: ["Zone I", "Zone II", "Zone III", "Zone IV"],
+              correctIndex: 3,
+            },
+            {
+              id: "course-mri-safety-mq2",
+              prompt: "The static magnetic field in a clinical MRI suite is:",
+              choices: [
+                "Only on during image acquisition",
+                "Always on",
+                "Turned off overnight for cleaning",
+                "Safe for all metal objects outside Zone IV",
+              ],
+              correctIndex: 1,
+            },
+          ],
+        },
+        {
+          id: "course-mri-safety-mod-2",
+          title: "Module 2 — Screening, implants, and final exam prep",
+          content: `Patient and staff screening is the primary control that prevents MRI adverse events.
+
+Use your facility's current screening form. Ask about implants, prior surgeries, foreign bodies, and occupational metal exposure. When implant status is unclear, pause the exam and verify with documentation or a radiologist/MRI safety officer.
+
+Conditional implants may require specific conditions (field strength, SAR, body region). "MR Unsafe" items must not enter the MRI environment. Document decisions and communicate clearly with the care team.
+
+Before the final exam, review:
+• Zone purposes and access control
+• Projectile and quench awareness
+• Screening steps and implant categories
+• When to stop and escalate`,
+          quizQuestions: [
+            {
+              id: "course-mri-safety-mq3",
+              prompt: "If a patient cannot confirm implant details, the safest next step is to:",
+              choices: [
+                "Proceed with a shorter protocol",
+                "Pause and verify before scanning",
+                "Ask a coworker to guess",
+                "Skip screening for follow-up exams",
+              ],
+              correctIndex: 1,
+            },
+            {
+              id: "course-mri-safety-mq4",
+              prompt: "An item labeled MR Unsafe should:",
+              choices: [
+                "Enter Zone IV only with supervision",
+                "Never enter the MRI environment",
+                "Be allowed if the patient consents",
+                "Be used only at 1.5T",
+              ],
+              correctIndex: 1,
+            },
+          ],
+        },
+      ],
+      examQuestions: [
+        {
+          id: "mri-ex-1",
+          prompt: "Zone IV refers to:",
+          choices: [
+            "The waiting room",
+            "The magnet room",
+            "The control desk only",
+            "Public hallways",
+          ],
+          correctIndex: 1,
+        },
+        {
+          id: "mri-ex-2",
+          prompt: "Ferromagnetic objects near the MRI bore create risk primarily because they can:",
+          choices: [
+            "Improve image contrast",
+            "Become projectiles",
+            "Reduce acoustic noise",
+            "Cool the magnet",
+          ],
+          correctIndex: 1,
+        },
+        {
+          id: "mri-ex-3",
+          prompt: "MRI screening should include questions about:",
+          choices: [
+            "Implants, surgeries, and metal exposure",
+            "Preferred music only",
+            "Insurance plan tier only",
+            "Previous CT contrast brand only",
+          ],
+          correctIndex: 0,
+        },
+        {
+          id: "mri-ex-4",
+          prompt: "The static field of a superconducting clinical magnet is typically:",
+          choices: [
+            "Off between patients",
+            "Always on",
+            "On only for contrast exams",
+            "Disabled during code situations automatically",
+          ],
+          correctIndex: 1,
+        },
+        {
+          id: "mri-ex-5",
+          prompt: "When implant conditions are unclear, the technologist should:",
+          choices: [
+            "Scan quickly at lower resolution",
+            "Stop and obtain verification before proceeding",
+            "Rely on the patient's verbal guess",
+            "Mark the exam as completed without imaging",
+          ],
+          correctIndex: 1,
+        },
+        {
+          id: "mri-ex-6",
+          prompt: "Zone III is best described as:",
+          choices: [
+            "A public unrestricted area",
+            "A restricted area near the magnet with controlled access",
+            "The outdoor parking lot",
+            "The reading room for radiologists only",
+          ],
+          correctIndex: 1,
+        },
+        {
+          id: "mri-ex-7",
+          prompt: "Hearing protection in MRI is important because:",
+          choices: [
+            "Gradient noise can be loud during scanning",
+            "It replaces the need for screening",
+            "It turns off the static field",
+            "It prevents all implant heating",
+          ],
+          correctIndex: 0,
+        },
+        {
+          id: "mri-ex-8",
+          prompt: "An MR Conditional implant means:",
+          choices: [
+            "It is safe under all MRI conditions",
+            "It may be scanned only under specified conditions",
+            "It is always unsafe at any field strength",
+            "It does not require documentation",
+          ],
+          correctIndex: 1,
+        },
+      ],
+      createdAt: "2026-07-01T12:00:00.000Z",
+      updatedAt: "2026-07-01T12:00:00.000Z",
+    },
   ],
   enrollments: [
     {
@@ -290,6 +471,19 @@ export const seedData: Database = {
       ],
       purchasedAt: "2026-06-15T10:00:00.000Z",
       lastActivityAt: "2026-07-12T11:00:00.000Z",
+    },
+    {
+      id: "enroll-mri-demo",
+      userId: "user-student-1",
+      courseId: "course-mri-safety",
+      status: "exam_ready",
+      progressPercent: 100,
+      completedModuleIds: [
+        "course-mri-safety-mod-1",
+        "course-mri-safety-mod-2",
+      ],
+      purchasedAt: "2026-07-20T14:00:00.000Z",
+      lastActivityAt: "2026-07-28T16:00:00.000Z",
     },
   ],
   certificates: [],

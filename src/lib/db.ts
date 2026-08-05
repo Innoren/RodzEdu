@@ -120,6 +120,24 @@ function migrateGrowthCollections(db: Database): boolean {
     dirty = true;
   }
 
+  const exampleCourse = seedData.courses.find((c) => c.id === "course-mri-safety");
+  if (exampleCourse && !db.courses.some((c) => c.id === "course-mri-safety")) {
+    db.courses.unshift(structuredClone(exampleCourse));
+    dirty = true;
+  }
+  const exampleEnrollment = seedData.enrollments.find(
+    (e) => e.id === "enroll-mri-demo",
+  );
+  if (
+    exampleEnrollment &&
+    !db.enrollments.some((e) => e.id === "enroll-mri-demo") &&
+    db.users.some((u) => u.id === "user-student-1") &&
+    db.courses.some((c) => c.id === "course-mri-safety")
+  ) {
+    db.enrollments.unshift(structuredClone(exampleEnrollment));
+    dirty = true;
+  }
+
   return dirty;
 }
 
