@@ -22,49 +22,98 @@ export function CourseLearner({
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
-  const [completedIds, setCompletedIds] = useState(enrollment.completedModuleIds);
+  const [completedIds, setCompletedIds] = useState(
+    enrollment.completedModuleIds || [],
+  );
   const [progress, setProgress] = useState(enrollment.progressPercent);
+  const [status, setStatus] = useState(enrollment.status);
 
   const active = useMemo(
     () => course.modules.find((m) => m.id === activeId),
     [activeId, course.modules],
   );
 
+  function quizAnswersFor(moduleId: string): number[] | undefined {
+    return answers[moduleId];
+  }
+
+  function validateQuiz(module: Course["modules"][number]): string | null {
+    if (module.quizQuestions.length === 0) return null;
+    const current = quizAnswersFor(module.id);
+    if (!current || current.length !== module.quizQuestions.length) {
+      return "Answer every quiz question before completing this module.";
+    }
+    if (current.some((value) => value < 0)) {
+      return "Answer every quiz question before completing this module.";
+    }
+    return null;
+  }
+
   async function completeActive() {
     if (!active) return;
+    if (completedIds.includes(active.id)) {
+      const next = course.modules.find((m) => !completedIds.includes(m.id));
+      if (next) setActiveId(next.id);
+      return;
+    }
+
+    const validationError = validateQuiz(active);
+    if (validationError) {
+      setError(validationError);
+      setMessage("");
+      return;
+    }
+
     setSaving(true);
     setError("");
     setMessage("");
 
-    const res = await fetch("/api/modules/complete", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        enrollmentId: enrollment.id,
-        moduleId: active.id,
-        quizAnswers: answers[active.id],
-      }),
-    });
-    const data = await res.json();
-    setSaving(false);
+    try {
+      const res = await fetch("/api/modules/complete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          enrollmentId: enrollment.id,
+          moduleId: active.id,
+          quizAnswers: quizAnswersFor(active.id) || [],
+        }),
+      });
 
-    if (!res.ok) {
-      setError(data.error || "Unable to save progress.");
-      return;
+      let data: {
+        error?: string;
+        enrollment?: Enrollment;
+      } = {};
+      try {
+        data = await res.json();
+      } catch {
+        setError("Unable to save progress. Please try again.");
+        return;
+      }
+
+      if (!res.ok || !data.enrollment) {
+        setError(data.error || "Unable to save progress.");
+        return;
+      }
+
+      setCompletedIds(data.enrollment.completedModuleIds || []);
+      setProgress(data.enrollment.progressPercent);
+      setStatus(data.enrollment.status);
+      setMessage("Progress saved. You can leave and return anytime.");
+      router.refresh();
+
+      const next = course.modules.find(
+        (m) => !data.enrollment!.completedModuleIds.includes(m.id),
+      );
+      if (next) setActiveId(next.id);
+    } catch {
+      setError("Unable to save progress. Check your connection and try again.");
+    } finally {
+      setSaving(false);
     }
-
-    setCompletedIds(data.enrollment.completedModuleIds);
-    setProgress(data.enrollment.progressPercent);
-    setMessage("Progress saved. You can leave and return anytime.");
-    router.refresh();
-
-    const next = course.modules.find(
-      (m) => !data.enrollment.completedModuleIds.includes(m.id),
-    );
-    if (next) setActiveId(next.id);
   }
 
-  const examReady = progress >= 100;
+  const examReady = progress >= 100 || status === "exam_ready";
+  const activeDone = active ? completedIds.includes(active.id) : false;
 
   return (
     <div className="grid gap-6 lg:grid-cols-[240px_1fr]">
@@ -83,7 +132,11 @@ export function CourseLearner({
               <button
                 key={module.id}
                 type="button"
-                onClick={() => setActiveId(module.id)}
+                onClick={() => {
+                  setActiveId(module.id);
+                  setError("");
+                  setMessage("");
+                }}
                 className={`rounded-sm px-3 py-2 text-left text-sm ${
                   activeId === module.id
                     ? "bg-sand font-semibold text-navy ring-1 ring-line"
@@ -99,9 +152,9 @@ export function CourseLearner({
         <div className="mt-5">
           <OpenExamButton
             enrollmentId={enrollment.id}
-            disabled={!examReady && enrollment.status !== "completed"}
+            disabled={!examReady && status !== "completed"}
           />
-          {!examReady && enrollment.status !== "completed" && (
+          {!examReady && status !== "completed" && (
             <p className="mt-2 text-xs text-muted">
               Finish every module quiz to unlock the final exam.
             </p>
@@ -116,28 +169,36 @@ export function CourseLearner({
             <h2 className="mt-2 font-[family-name:var(--font-display)] text-3xl text-navy">
               {active.title}
             </h2>
+            {activeDone ? (
+              <p className="mt-3 rounded-sm bg-teal/10 px-3 py-2 text-sm text-navy">
+                This module is complete.
+              </p>
+            ) : null}
             <div className="mt-5 whitespace-pre-wrap text-base leading-relaxed text-ink/90">
               {active.content}
             </div>
 
-            {active.quizQuestions.length > 0 && (
+            {active.quizQuestions.length > 0 && !activeDone && (
               <div className="mt-8 space-y-4 border-t border-line pt-6">
                 <h3 className="font-[family-name:var(--font-display)] text-xl text-navy">
                   Module quiz
                 </h3>
                 <p className="text-sm text-muted">
-                  Answer correctly to mark this module complete and save your
-                  progress.
+                  Answer every question correctly, then click complete to save
+                  your progress.
                 </p>
                 {active.quizQuestions.map((question, qIndex) => (
-                  <fieldset key={question.id} className="rounded-sm border border-line p-4">
+                  <fieldset
+                    key={question.id}
+                    className="rounded-sm border border-line p-4"
+                  >
                     <legend className="px-1 text-sm font-semibold text-navy">
                       {qIndex + 1}. {question.prompt}
                     </legend>
                     <div className="mt-2 space-y-2">
                       {question.choices.map((choice, cIndex) => (
                         <label
-                          key={choice}
+                          key={`${question.id}-${cIndex}`}
                           className="flex cursor-pointer items-start gap-3 text-sm"
                         >
                           <input
@@ -181,11 +242,11 @@ export function CourseLearner({
             <button
               type="button"
               onClick={completeActive}
-              disabled={saving || completedIds.includes(active.id)}
+              disabled={saving}
               className="btn btn-primary mt-6"
             >
-              {completedIds.includes(active.id)
-                ? "Module complete"
+              {activeDone
+                ? "Continue to next module"
                 : saving
                   ? "Saving…"
                   : "Complete module & save progress"}

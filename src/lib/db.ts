@@ -141,21 +141,28 @@ function migrateGrowthCollections(db: Database): boolean {
   return dirty;
 }
 
-async function ensureDb(): Promise<Database> {
-  if (globalThis.__rodzeduDb) {
-    return globalThis.__rodzeduDb;
+async function persistMigrated(db: Database): Promise<Database> {
+  if (migrateGrowthCollections(db)) {
+    globalThis.__rodzeduDb = db;
+    await writeDb(db);
+    return db;
   }
+  globalThis.__rodzeduDb = db;
+  return db;
+}
 
+/**
+ * Load the database. When Blob is configured, always read fresh from Blob so
+ * progress writes are not lost to a stale in-memory copy (common on serverless).
+ */
+async function ensureDb(): Promise<Database> {
   const fromBlob = await readDbFromBlob();
   if (fromBlob) {
-    const db = normalizeDatabase(fromBlob);
-    if (migrateGrowthCollections(db)) {
-      globalThis.__rodzeduDb = db;
-      await writeDb(db);
-      return db;
-    }
-    globalThis.__rodzeduDb = db;
-    return db;
+    return persistMigrated(normalizeDatabase(fromBlob));
+  }
+
+  if (globalThis.__rodzeduDb) {
+    return globalThis.__rodzeduDb;
   }
 
   const fromFile = await readDbFromFile();
@@ -185,13 +192,18 @@ export async function getDb(): Promise<Database> {
 }
 
 export async function getSettings(): Promise<SiteSettings> {
-  // Always read settings from durable Blob when available so the public site
-  // reflects CEO changes immediately (not a stale seed /tmp copy).
+  // Refresh settings from Blob without replacing enrollments/courses in memory —
+  // replacing the whole DB here raced with module-complete writes and wiped progress.
   if (hasBlobStore()) {
     const fromBlob = await readDbFromBlob();
     if (fromBlob) {
-      globalThis.__rodzeduDb = normalizeDatabase(fromBlob);
-      return globalThis.__rodzeduDb.settings;
+      const freshSettings = normalizeDatabase(fromBlob).settings;
+      if (globalThis.__rodzeduDb) {
+        globalThis.__rodzeduDb.settings = freshSettings;
+      } else {
+        globalThis.__rodzeduDb = normalizeDatabase(fromBlob);
+      }
+      return freshSettings;
     }
   }
   const db = await ensureDb();
