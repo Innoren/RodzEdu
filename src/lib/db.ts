@@ -400,7 +400,60 @@ export async function listEnrollmentsForTeacher(
       const student = students.find((s) => s.id === enrollment.userId)!;
       const course = db.courses.find((c) => c.id === enrollment.courseId)!;
       return { student, enrollment, course };
-    });
+    })
+    .filter((row) => Boolean(row.course));
+}
+
+/** Teacher: assigned students only. Admin/CEO: all student enrollments. */
+export async function listEnrollmentsForStaff(
+  actor: Pick<User, "id" | "role">,
+): Promise<{ student: User; enrollment: Enrollment; course: Course }[]> {
+  if (actor.role === "teacher") {
+    return listEnrollmentsForTeacher(actor.id);
+  }
+  if (actor.role !== "admin" && actor.role !== "ceo") {
+    return [];
+  }
+
+  const db = await ensureDb();
+  return db.enrollments
+    .map((enrollment) => {
+      const student = db.users.find(
+        (u) => u.id === enrollment.userId && u.role === "student",
+      );
+      const course = db.courses.find((c) => c.id === enrollment.courseId);
+      if (!student || !course) return null;
+      return { student, enrollment, course };
+    })
+    .filter((row): row is { student: User; enrollment: Enrollment; course: Course } =>
+      Boolean(row),
+    );
+}
+
+export async function listStudentsForStaff(
+  actor: Pick<User, "id" | "role">,
+): Promise<User[]> {
+  const db = await ensureDb();
+  if (actor.role === "teacher") {
+    return db.users.filter(
+      (u) => u.role === "student" && u.teacherId === actor.id,
+    );
+  }
+  if (actor.role === "admin" || actor.role === "ceo") {
+    return db.users.filter((u) => u.role === "student");
+  }
+  return [];
+}
+
+export async function staffCanManageStudent(
+  actor: Pick<User, "id" | "role">,
+  studentId: string,
+): Promise<boolean> {
+  if (actor.role === "admin" || actor.role === "ceo") return true;
+  if (actor.role !== "teacher") return false;
+  const db = await ensureDb();
+  const student = db.users.find((u) => u.id === studentId && u.role === "student");
+  return Boolean(student && student.teacherId === actor.id);
 }
 
 export async function enrollUser(
@@ -425,6 +478,64 @@ export async function enrollUser(
     lastActivityAt: now,
   };
   db.enrollments.unshift(enrollment);
+  await writeDb(db);
+  return enrollment;
+}
+
+function clearEnrollmentProgress(enrollment: Enrollment) {
+  enrollment.completedModuleIds = [];
+  enrollment.progressPercent = 0;
+  enrollment.status = "purchased";
+  enrollment.score = undefined;
+  enrollment.completedAt = undefined;
+  enrollment.certificateId = undefined;
+  enrollment.lastActivityAt = new Date().toISOString();
+}
+
+/** Reset module completion / exam progress for an enrollment. */
+export async function resetEnrollmentModules(
+  enrollmentId: string,
+): Promise<Enrollment | { error: string }> {
+  const db = await ensureDb();
+  const enrollment = db.enrollments.find((e) => e.id === enrollmentId);
+  if (!enrollment) return { error: "Enrollment not found." };
+
+  clearEnrollmentProgress(enrollment);
+  // Remove certificate tied to this enrollment so the student must re-earn it.
+  db.certificates = db.certificates.filter(
+    (c) => c.enrollmentId !== enrollmentId,
+  );
+  await writeDb(db);
+  return enrollment;
+}
+
+/** Move an enrollment to a different course and reset progress. */
+export async function reassignEnrollmentCourse(
+  enrollmentId: string,
+  courseId: string,
+): Promise<Enrollment | { error: string }> {
+  const db = await ensureDb();
+  const enrollment = db.enrollments.find((e) => e.id === enrollmentId);
+  if (!enrollment) return { error: "Enrollment not found." };
+
+  const course = db.courses.find((c) => c.id === courseId && c.published);
+  if (!course) return { error: "Published course not found." };
+
+  const duplicate = db.enrollments.find(
+    (e) =>
+      e.id !== enrollmentId &&
+      e.userId === enrollment.userId &&
+      e.courseId === courseId,
+  );
+  if (duplicate) {
+    return { error: "Student is already enrolled in that course." };
+  }
+
+  enrollment.courseId = courseId;
+  clearEnrollmentProgress(enrollment);
+  db.certificates = db.certificates.filter(
+    (c) => c.enrollmentId !== enrollmentId,
+  );
   await writeDb(db);
   return enrollment;
 }
