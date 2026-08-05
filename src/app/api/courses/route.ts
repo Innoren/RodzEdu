@@ -17,6 +17,7 @@ export async function POST(request: Request) {
             prompt?: string;
             choices?: string[];
             correctIndex?: number;
+            explanation?: string;
           },
           index: number,
         ) => ({
@@ -26,6 +27,7 @@ export async function POST(request: Request) {
             ? q.choices.map((c) => String(c))
             : [],
           correctIndex: Number(q.correctIndex ?? 0),
+          explanation: q.explanation ? String(q.explanation) : undefined,
         }),
       )
     : [];
@@ -52,6 +54,9 @@ export async function POST(request: Request) {
                   ? q.choices.map((c) => String(c))
                   : [],
                 correctIndex: Number(q.correctIndex ?? 0),
+                explanation: q.explanation
+                  ? String(q.explanation)
+                  : undefined,
               }))
             : [],
         }),

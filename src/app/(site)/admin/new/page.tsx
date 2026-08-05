@@ -1,6 +1,7 @@
 import { requireUser } from "@/lib/auth";
 import { PortalNav } from "@/components/PortalNav";
 import { CourseUploadForm } from "@/components/CourseUploadForm";
+import { CourseDocumentUploadForm } from "@/components/CourseDocumentUploadForm";
 
 export default async function AdminNewCoursePage() {
   const user = await requireUser(["admin", "ceo"]);
@@ -15,10 +16,21 @@ export default async function AdminNewCoursePage() {
             Upload a course
           </h1>
           <p className="mt-3 mb-6 text-muted">
-            Add title, pricing, content, and exam questions. Publish when ready
-            for students to enroll.
+            Create a course from your Word workbook + final exam, or enter
+            everything manually below.
           </p>
-          <CourseUploadForm />
+
+          <CourseDocumentUploadForm />
+
+          <div className="my-10 border-t border-line pt-10">
+            <h2 className="font-[family-name:var(--font-display)] text-2xl text-navy">
+              Or enter a course manually
+            </h2>
+            <p className="mt-2 mb-6 text-sm text-muted">
+              Use this form when you want to type or paste content yourself.
+            </p>
+            <CourseUploadForm />
+          </div>
         </div>
       </div>
     </section>
