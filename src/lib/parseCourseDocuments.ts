@@ -373,7 +373,8 @@ export function buildCourseFromDocuments(input: {
     description,
     credits,
     category,
-    content: workbook.modules.map((m) => m.content).join("\n\n"),
+    // Keep course.content short for catalog/edit views — full lessons live on modules.
+    content: description,
     modules: modulesWithoutIds.map((m, index) => ({
       title: m.title,
       content: m.content,

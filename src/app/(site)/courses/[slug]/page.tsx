@@ -11,6 +11,7 @@ import {
   listReviewsForCourse,
 } from "@/lib/db";
 import { formatMoney, formatDate } from "@/lib/format";
+import { getModuleOverview } from "@/lib/moduleOverview";
 import { CheckoutForm } from "@/components/CheckoutForm";
 import { ReviewForm } from "@/components/ReviewForm";
 import { ContactForm } from "@/components/ContactForm";
@@ -102,19 +103,33 @@ export default async function CourseDetailPage({
             <h2 className="font-[family-name:var(--font-display)] text-2xl text-navy">
               Course modules
             </h2>
-            <ol className="mt-4 space-y-3 text-sm text-ink/85 md:text-base">
-              {(course.modules || []).map((module, index) => (
-                <li key={module.id}>
-                  <span className="font-semibold text-navy">
-                    {index + 1}. {module.title}
-                  </span>
-                  {module.quizQuestions.length > 0 ? " · includes quiz" : ""}
-                </li>
-              ))}
-            </ol>
-            <p className="mt-5 max-w-2xl leading-relaxed text-muted">
-              {course.content}
+            <p className="mt-2 max-w-2xl text-sm text-muted md:text-base">
+              A brief look at what you&apos;ll cover. Full lesson content unlocks
+              after enrollment.
             </p>
+            <ol className="mt-6 divide-y divide-line border-y border-line">
+              {(course.modules || []).map((module, index) => {
+                const overview = getModuleOverview(module.content);
+                return (
+                  <li key={module.id} className="py-5">
+                    <div className="flex flex-wrap items-baseline justify-between gap-2">
+                      <h3 className="font-[family-name:var(--font-display)] text-xl text-navy md:text-[1.35rem]">
+                        <span className="text-teal">{index + 1}.</span>{" "}
+                        {module.title.replace(/^module\s+\d+\s*:\s*/i, "")}
+                      </h3>
+                      {module.quizQuestions.length > 0 ? (
+                        <span className="text-xs font-semibold uppercase tracking-[0.12em] text-teal">
+                          Includes quiz
+                        </span>
+                      ) : null}
+                    </div>
+                    <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted md:text-base">
+                      {overview}
+                    </p>
+                  </li>
+                );
+              })}
+            </ol>
           </div>
 
           {instructor ? (
