@@ -34,8 +34,8 @@ export default async function TeacherPortalPage() {
             Student progress & course assignment
           </h1>
           <p className="mt-3 text-muted">
-            Monitor enrollments for {scopeLabel}. Reset module progress or
-            reassign courses when a learner needs a fresh start.
+            Monitor enrollments for {scopeLabel}. Fast-forward to any module,
+            unlock the final exam, reset progress, or reassign courses.
           </p>
 
           <AssignCourseForm students={students} courses={courses} />
@@ -97,6 +97,10 @@ export default async function TeacherPortalPage() {
                         enrollmentId={enrollment.id}
                         currentCourseId={course.id}
                         courses={courses}
+                        modules={course.modules.map((module) => ({
+                          id: module.id,
+                          title: module.title,
+                        }))}
                       />
                     </td>
                   </tr>

@@ -600,6 +600,71 @@ export async function clearAllCourses(): Promise<{
   };
 }
 
+/**
+ * Staff fast-forward: place a student on a module (prior modules marked done)
+ * or unlock the final exam (all modules done, progress 100%).
+ */
+export async function advanceEnrollmentProgress(input: {
+  enrollmentId: string;
+  /** 1-based module number to resume on; modules before it are marked complete. */
+  resumeAtModuleNumber?: number;
+  /** Complete every module and unlock the final exam. */
+  unlockExam?: boolean;
+}): Promise<Enrollment | { error: string }> {
+  const db = await ensureDb();
+  const enrollment = db.enrollments.find((e) => e.id === input.enrollmentId);
+  if (!enrollment) return { error: "Enrollment not found." };
+
+  const course = db.courses.find((c) => c.id === enrollment.courseId);
+  if (!course) return { error: "Course not found." };
+  if (course.modules.length === 0) {
+    return { error: "This course has no modules to advance." };
+  }
+
+  let completedIds: string[];
+
+  if (input.unlockExam) {
+    completedIds = course.modules.map((m) => m.id);
+  } else {
+    const target = Number(input.resumeAtModuleNumber);
+    if (!Number.isFinite(target) || target < 1) {
+      return { error: "Choose a valid module number." };
+    }
+    if (target > course.modules.length) {
+      // Past the last module → unlock exam.
+      completedIds = course.modules.map((m) => m.id);
+    } else {
+      // Resume on module N ⇒ complete modules 1..(N-1).
+      completedIds = course.modules.slice(0, target - 1).map((m) => m.id);
+    }
+  }
+
+  const total = Math.max(course.modules.length, 1);
+  enrollment.completedModuleIds = completedIds;
+  enrollment.progressPercent = Math.round((completedIds.length / total) * 100);
+  enrollment.score = undefined;
+  enrollment.completedAt = undefined;
+  enrollment.certificateId = undefined;
+  enrollment.lastActivityAt = new Date().toISOString();
+
+  if (enrollment.progressPercent >= 100) {
+    enrollment.status = "exam_ready";
+    enrollment.progressPercent = 100;
+  } else if (enrollment.progressPercent > 0) {
+    enrollment.status = "in_progress";
+  } else {
+    enrollment.status = "purchased";
+  }
+
+  // Drop any certificate so they must (re)earn it after unlocking/taking the exam.
+  db.certificates = db.certificates.filter(
+    (c) => c.enrollmentId !== enrollment.id,
+  );
+
+  await writeDb(db);
+  return enrollment;
+}
+
 /** Move an enrollment to a different course and reset progress. */
 export async function reassignEnrollmentCourse(
   enrollmentId: string,

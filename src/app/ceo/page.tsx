@@ -82,7 +82,7 @@ export default async function CeoOverviewPage() {
               Team & learners
             </h2>
             <Link href="/teacher" className="text-sm font-semibold text-teal">
-              Student progress →
+              Manage students →
             </Link>
           </div>
           <ul className="mt-4 space-y-3 text-sm">
