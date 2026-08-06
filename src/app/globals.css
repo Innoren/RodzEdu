@@ -272,6 +272,7 @@ a {
 
 .module-content {
   color: var(--ink);
+  font-family: var(--font-body), "Segoe UI", sans-serif;
   font-size: 1.05rem;
   line-height: 1.7;
 }
@@ -288,6 +289,7 @@ a {
   margin-bottom: 0.55rem;
   font-family: var(--font-display), Georgia, serif;
   font-size: 1.35rem;
+  font-weight: 700;
   line-height: 1.3;
   color: var(--navy);
 }
@@ -317,15 +319,34 @@ a {
   color: rgba(27, 42, 53, 0.85);
 }
 
+/* Restore bullets — Tailwind preflight clears list-style. */
 .module-content ul,
-.module-content ol,
 .module-content .module-list {
   margin: 0.35rem 0 0;
-  padding-left: 1.35rem;
+  padding-left: 1.5rem;
+  list-style-type: disc;
+  list-style-position: outside;
+}
+
+.module-content ol {
+  margin: 0.35rem 0 0;
+  padding-left: 1.5rem;
+  list-style-type: decimal;
+  list-style-position: outside;
+}
+
+.module-content li {
+  display: list-item;
+  margin: 0;
+  padding-left: 0.15rem;
 }
 
 .module-content li + li {
   margin-top: 0.4rem;
+}
+
+.module-content li::marker {
+  color: var(--teal);
 }
 
 .module-content a {
@@ -337,15 +358,19 @@ a {
 
 .module-content .module-tip,
 .module-content aside.module-tip {
-  margin-top: 1.25rem;
-  border-left: 3px solid var(--teal);
+  margin-top: 0.65rem;
+  border-left: 4px solid var(--teal);
   background: rgba(34, 138, 156, 0.08);
-  padding: 0.9rem 1rem;
+  padding: 0.95rem 1.1rem;
 }
 
 .module-content .module-tip p {
   margin: 0;
   color: var(--navy);
+}
+
+.module-content .module-heading + .module-tip {
+  margin-top: 0.55rem;
 }
 
 @media (prefers-reduced-motion: reduce) {

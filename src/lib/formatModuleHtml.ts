@@ -5,6 +5,7 @@ const SECTION_HEADINGS = [
   "Course Opening",
   "A Message from the Instructor",
   "Rodz Tip",
+  "Real Clinical Experience",
   "Module Summary",
   "Key Takeaways",
   "Closing Message",
@@ -12,6 +13,8 @@ const SECTION_HEADINGS = [
   "Evidence-Based Practice",
   "Module Description",
 ];
+
+const TIP_HEADINGS = ["Rodz Tip"];
 
 export function looksLikeHtml(content: string): boolean {
   return /<\/?[a-z][\s\S]*>/i.test(content || "");
@@ -38,7 +41,7 @@ function escapeRegex(text: string): string {
   return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-/** Promote Word <strong> section labels into real headings. */
+/** Promote Word <strong> section labels into real headings / tip callouts. */
 export function polishModuleHtml(html: string): string {
   let out = html;
   for (const heading of SECTION_HEADINGS) {
@@ -54,6 +57,18 @@ export function polishModuleHtml(html: string): string {
     /<p>\s*<strong>\s*(Lesson\s+\d+\s*:\s*[^<]+)<\/strong>\s*<\/p>/gi,
     '<h3 class="module-heading">$1</h3>',
   );
+
+  // Rodz Tip heading + following paragraph → tip callout (matches Word layout).
+  for (const tip of TIP_HEADINGS) {
+    out = out.replace(
+      new RegExp(
+        `<h3 class="module-heading">${escapeRegex(tip)}<\\/h3>\\s*<p>([\\s\\S]*?)<\\/p>`,
+        "gi",
+      ),
+      `<h3 class="module-heading">${tip}</h3><aside class="module-tip"><p>$1</p></aside>`,
+    );
+  }
+
   // Drop repeated course-title banners inside a module body.
   out = out.replace(
     /<p>\s*<strong>\s*[^<]{0,80}Essentials\s*<\/strong>\s*<\/p>/gi,
@@ -173,6 +188,7 @@ export function plainTextToModuleHtml(content: string): string {
           if (tip.join(" ").length > 400) break;
         }
         if (tip.length) {
+          // Keep the tip label as a heading, body in the callout (Word style).
           html.push(
             `<aside class="module-tip"><p>${escapeHtml(tip.join(" "))}</p></aside>`,
           );
@@ -210,6 +226,49 @@ export function plainTextToModuleHtml(content: string): string {
 
     html.push(`<p>${escapeHtml(line)}</p>`);
     i += 1;
+
+    // After an intro like “ask yourself:” / “Never assume:”, collect short list items.
+    if (
+      /:\s*$/.test(line) &&
+      (/(ask yourself|never assume|responsible for|protecting|include|following)\b/i.test(
+        line,
+      ) ||
+        /^before every/i.test(line))
+    ) {
+      const items: string[] = [];
+      while (i < lines.length) {
+        const next = lines[i];
+        if (
+          SECTION_HEADINGS.some((h) => h.toLowerCase() === next.toLowerCase()) ||
+          /^lesson\s+\d+\s*:/i.test(next) ||
+          /^\d+\.\s+/.test(next)
+        ) {
+          break;
+        }
+        const listLike =
+          (next.length < 160 &&
+            (/\?$/.test(next) ||
+              /^[A-Z]/.test(next) ||
+              /^[-•*]/.test(next))) &&
+          !/[.!]{2,}/.test(next);
+        if (!listLike) break;
+        items.push(next.replace(/^[-•*]\s*/, ""));
+        i += 1;
+        if (items.length >= 12) break;
+      }
+      if (items.length >= 2) {
+        html.push(
+          `<ul class="module-list">${items
+            .map((item) => `<li>${escapeHtml(item)}</li>`)
+            .join("")}</ul>`,
+        );
+      } else {
+        // Not enough items — put them back as paragraphs.
+        for (const item of items) {
+          html.push(`<p>${escapeHtml(item)}</p>`);
+        }
+      }
+    }
   }
 
   return html.join("\n");
