@@ -16,8 +16,9 @@ export default async function AdminNewCoursePage() {
             Upload a course
           </h1>
           <p className="mt-3 mb-6 text-muted">
-            Create a course from your Word workbook + final exam, or enter
-            everything manually below.
+            Create a course from your Word workbook + final exam. Word lesson
+            formatting is applied by default, or enter everything manually
+            below.
           </p>
 
           <CourseDocumentUploadForm />

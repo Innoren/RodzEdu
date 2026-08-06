@@ -49,10 +49,10 @@ export function CourseDocumentUploadForm() {
           Create from Word documents
         </h2>
         <p className="mt-2 text-sm text-muted">
-          Upload your Rodz course workbook and final exam as <strong>.docx</strong>{" "}
-          files. We&apos;ll build modules, knowledge-check quizzes, exam
-          questions, and answer explanations automatically. You can still edit
-          details below before publishing.
+          Upload any Rodz course workbook and final exam as{" "}
+          <strong>.docx</strong> files. Modules, quizzes, and the final exam are
+          built automatically, and lesson formatting from Word (headings, lists,
+          bold, Rodz Tips) is applied by default.
         </p>
       </div>
 
@@ -78,7 +78,7 @@ export function CourseDocumentUploadForm() {
             className="mt-1 w-full border border-line px-3 py-2 text-sm file:mr-3 file:border-0 file:bg-sand file:px-3 file:py-1.5"
           />
           <span className="mt-1 block text-xs text-muted">
-            Example: MRI Safety Essentials course content
+            Any workbook with “Module 1: …” sections
           </span>
         </label>
         <label className="block text-sm font-medium text-navy">
@@ -91,7 +91,7 @@ export function CourseDocumentUploadForm() {
             className="mt-1 w-full border border-line px-3 py-2 text-sm file:mr-3 file:border-0 file:bg-sand file:px-3 file:py-1.5"
           />
           <span className="mt-1 block text-xs text-muted">
-            Example: MRI Safety Essentials Final Exam
+            Question 1 / A–D / Correct Answer format
           </span>
         </label>
       </div>
@@ -106,12 +106,11 @@ export function CourseDocumentUploadForm() {
           />
         </label>
         <label className="block text-sm font-medium text-navy">
-          Category
+          Category (optional)
           <input
             name="category"
             className="mt-1 w-full border border-line px-3 py-2"
-            placeholder="MRI"
-            defaultValue="MRI"
+            placeholder="Auto from title (MRI, CT, Mammography…)"
           />
         </label>
       </div>

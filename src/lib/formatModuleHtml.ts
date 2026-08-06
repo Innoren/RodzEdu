@@ -117,11 +117,12 @@ function collapseNearDuplicateParagraphs(html: string): string {
 /**
  * Split mammoth HTML into per-module bodies keyed by module number.
  * Cuts each module before its Knowledge Check.
+ * Supports bold paragraphs and Word heading styles.
  */
 export function extractModuleHtmlByNumber(courseHtml: string): Map<number, string> {
   const map = new Map<number, string>();
   const marker =
-    /<p>\s*<strong>\s*Module\s+(\d+)\s*:\s*([\s\S]*?)<\/strong>\s*<\/p>/gi;
+    /<(?:p|h[1-6])[^>]*>\s*(?:<strong>)?\s*Module\s+(\d+)\s*:\s*([\s\S]*?)\s*(?:<\/strong>)?\s*<\/(?:p|h[1-6])>/gi;
   const matches = [...courseHtml.matchAll(marker)];
 
   for (let i = 0; i < matches.length; i++) {
@@ -133,13 +134,25 @@ export function extractModuleHtmlByNumber(courseHtml: string): Map<number, strin
         : courseHtml.length;
     let slice = courseHtml.slice(start, end);
     const quizCut = slice.search(
-      /<p>\s*<strong>\s*(?:Final\s+)?Knowledge Check\s*<\/strong>\s*<\/p>/i,
+      /<(?:p|h[1-6])[^>]*>\s*(?:<strong>)?\s*(?:Final\s+)?Knowledge Check\s*(?:<\/strong>)?\s*<\/(?:p|h[1-6])>/i,
     );
     if (quizCut >= 0) slice = slice.slice(0, quizCut);
     map.set(num, polishModuleHtml(slice));
   }
 
   return map;
+}
+
+/**
+ * Default storage format for every Word upload: polished HTML with
+ * headings, lists, bold, and tip callouts (never raw plain text).
+ */
+export function formatModuleContentForStorage(content: string): string {
+  if (!content?.trim()) return "<p>No lesson content.</p>";
+  if (looksLikeHtml(content)) {
+    return sanitizeCourseHtml(polishModuleHtml(content));
+  }
+  return sanitizeCourseHtml(plainTextToModuleHtml(content));
 }
 
 /**

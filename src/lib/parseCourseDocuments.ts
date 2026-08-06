@@ -1,5 +1,8 @@
 import type { CourseModule, ExamQuestion } from "@/lib/types";
-import { extractModuleHtmlByNumber } from "@/lib/formatModuleHtml";
+import {
+  extractModuleHtmlByNumber,
+  formatModuleContentForStorage,
+} from "@/lib/formatModuleHtml";
 
 export type ParsedCourseFromDocs = {
   title: string;
@@ -354,10 +357,20 @@ export function buildCourseFromDocuments(input: {
 
   const category = input.overrides?.category?.trim() || guessCategory(title);
 
-  // Prefer Word HTML bodies when available so bold/lists survive into the learner view.
+  // Always prefer Word HTML bodies so bold/lists/tips match the learner format.
   const moduleHtmlMap = input.courseHtml
     ? extractModuleHtmlByNumber(input.courseHtml)
     : new Map<number, string>();
+
+  if (input.courseHtml && moduleHtmlMap.size === 0) {
+    warnings.push(
+      "Could not split Word HTML by module markers — applied structured lesson formatting from plain text instead.",
+    );
+  } else if (input.courseHtml && moduleHtmlMap.size < workbook.modules.length) {
+    warnings.push(
+      `Word HTML matched ${moduleHtmlMap.size} of ${workbook.modules.length} modules; remaining modules use structured lesson formatting.`,
+    );
+  }
 
   const modulesWithoutIds = workbook.modules.map(
     ({ title: t, content, quizQuestions }, index) => {
@@ -366,7 +379,8 @@ export function buildCourseFromDocuments(input: {
       const htmlContent = moduleHtmlMap.get(moduleNumber);
       return {
         title: t,
-        content: htmlContent || content,
+        // Default for every Word upload: store polished HTML (never raw plain text).
+        content: formatModuleContentForStorage(htmlContent || content),
         quizQuestions: quizQuestions.map(
           ({ prompt, choices, correctIndex, explanation }) => ({
             prompt,
