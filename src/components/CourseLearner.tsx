@@ -3,8 +3,41 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Course, Enrollment, ExamAnswerReview } from "@/lib/types";
+import { buildQuizAnswerReview } from "@/lib/quizReview";
 import { OpenExamButton } from "@/components/OpenExamButton";
 import { ModuleContent } from "@/components/ModuleContent";
+
+function QuizFeedback({ item }: { item: ExamAnswerReview }) {
+  return (
+    <div className="mt-3 space-y-2 border-t border-line/70 pt-3 text-sm leading-relaxed">
+      <p className="text-ink/85">
+        <span className="font-semibold text-navy">Your answer:</span>{" "}
+        {item.selectedChoice}
+      </p>
+      {!item.isCorrect ? (
+        <>
+          <p className="text-danger">
+            <span className="font-semibold">Why this is incorrect:</span>{" "}
+            {item.incorrectReason}
+          </p>
+          <p className="text-navy">
+            <span className="font-semibold">Correct answer:</span>{" "}
+            {item.correctChoice}
+          </p>
+          <p className="text-ink/85">
+            <span className="font-semibold">Why the correct answer is right:</span>{" "}
+            {item.correctReason}
+          </p>
+        </>
+      ) : (
+        <p className="text-ink/85">
+          <span className="font-semibold text-navy">Why this is correct:</span>{" "}
+          {item.correctReason}
+        </p>
+      )}
+    </div>
+  );
+}
 
 export function CourseLearner({
   course,
@@ -38,6 +71,7 @@ export function CourseLearner({
   );
 
   const activeReview = activeId ? reviews[activeId] : undefined;
+  const wrongCount = activeReview?.filter((item) => !item.isCorrect).length || 0;
 
   function quizAnswersFor(moduleId: string): number[] | undefined {
     return answers[moduleId];
@@ -70,6 +104,28 @@ export function CourseLearner({
       return;
     }
 
+    const selected = quizAnswersFor(active.id) || [];
+    // Always show feedback immediately from the quiz content itself.
+    const localReview = buildQuizAnswerReview(active.quizQuestions, selected);
+    setReviews((prev) => ({ ...prev, [active.id]: localReview }));
+
+    const allCorrect = localReview.every((item) => item.isCorrect);
+    if (!allCorrect) {
+      setError(
+        `${localReview.filter((i) => !i.isCorrect).length} answer${
+          localReview.filter((i) => !i.isCorrect).length === 1 ? " is" : "s are"
+        } incorrect. Scroll up to see the correct answers and explanations, then try again.`,
+      );
+      setMessage("");
+      // Scroll to first wrong question feedback.
+      requestAnimationFrame(() => {
+        document
+          .getElementById(`quiz-feedback-${active.id}`)
+          ?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+      return;
+    }
+
     setSaving(true);
     setError("");
     setMessage("");
@@ -81,7 +137,7 @@ export function CourseLearner({
         body: JSON.stringify({
           enrollmentId: enrollment.id,
           moduleId: active.id,
-          quizAnswers: quizAnswersFor(active.id) || [],
+          quizAnswers: selected,
         }),
       });
 
@@ -97,15 +153,21 @@ export function CourseLearner({
         return;
       }
 
-      if (Array.isArray(data.review)) {
+      if (Array.isArray(data.review) && data.review.length > 0) {
         setReviews((prev) => ({ ...prev, [active.id]: data.review! }));
       }
 
       if (!res.ok || !data.enrollment) {
+        // Keep local review visible even if server rejects.
         setError(
           data.error ||
-            "One or more quiz answers were incorrect. Review the feedback and try again.",
+            "Some answers were incorrect. Review the feedback above and try again.",
         );
+        requestAnimationFrame(() => {
+          document
+            .getElementById(`quiz-feedback-${active.id}`)
+            ?.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
         return;
       }
 
@@ -116,15 +178,6 @@ export function CourseLearner({
         "All answers correct — progress saved. You can leave and return anytime.",
       );
       router.refresh();
-
-      const next = course.modules.find(
-        (m) => !data.enrollment!.completedModuleIds.includes(m.id),
-      );
-      if (next) {
-        // Keep review visible briefly; advance after a short moment is nicer
-        // but user asked to see feedback — stay on module when they just passed
-        // only auto-advance if they click continue. Don't auto-skip past review.
-      }
     } catch {
       setError("Unable to save progress. Check your connection and try again.");
     } finally {
@@ -199,19 +252,37 @@ export function CourseLearner({
             </div>
 
             {active.quizQuestions.length > 0 && !activeDone && (
-              <div className="mt-8 space-y-4 border-t border-line pt-6">
+              <div
+                id={`quiz-feedback-${active.id}`}
+                className="mt-8 space-y-4 border-t border-line pt-6"
+              >
                 <h3 className="font-[family-name:var(--font-display)] text-xl text-navy">
                   Module quiz
                 </h3>
                 <p className="text-sm text-muted">
-                  Answer every question, then check your answers. You&apos;ll
-                  see why each choice is right or wrong — and you must get them
-                  all correct to continue.
+                  Answer every question, then click check answers. You&apos;ll
+                  see the correct answer and why for each question. You must get
+                  them all right to continue.
                 </p>
+
+                {activeReview && activeReview.length > 0 ? (
+                  <div
+                    className={`rounded-sm px-3 py-2 text-sm ${
+                      wrongCount > 0
+                        ? "bg-red-50 text-danger"
+                        : "bg-teal/10 text-navy"
+                    }`}
+                  >
+                    {wrongCount > 0
+                      ? `${wrongCount} incorrect — see the correct answers and explanations under each question below.`
+                      : "All answers correct. Saving your progress…"}
+                  </div>
+                ) : null}
+
                 {active.quizQuestions.map((question, qIndex) => {
-                  const item = activeReview?.find(
-                    (r) => r.questionId === question.id,
-                  );
+                  const item =
+                    activeReview?.[qIndex] ||
+                    activeReview?.find((r) => r.questionId === question.id);
                   return (
                     <fieldset
                       key={question.id}
@@ -236,81 +307,58 @@ export function CourseLearner({
                         ) : null}
                       </legend>
                       <div className="mt-2 space-y-2">
-                        {question.choices.map((choice, cIndex) => (
-                          <label
-                            key={`${question.id}-${cIndex}`}
-                            className="flex cursor-pointer items-start gap-3 text-sm"
-                          >
-                            <input
-                              type="radio"
-                              name={`${active.id}-${question.id}`}
-                              checked={
-                                (answers[active.id] || [])[qIndex] === cIndex
-                              }
-                              onChange={() => {
-                                setAnswers((prev) => {
-                                  const current = [
-                                    ...(prev[active.id] ||
-                                      active.quizQuestions.map(() => -1)),
-                                  ];
-                                  current[qIndex] = cIndex;
-                                  return { ...prev, [active.id]: current };
-                                });
-                                // Clear prior review when changing an answer.
-                                setReviews((prev) => {
-                                  if (!prev[active.id]) return prev;
-                                  const next = { ...prev };
-                                  delete next[active.id];
-                                  return next;
-                                });
-                                setError("");
-                                setMessage("");
-                              }}
-                              className="mt-1"
-                            />
-                            <span>{choice}</span>
-                          </label>
-                        ))}
+                        {question.choices.map((choice, cIndex) => {
+                          const selected =
+                            (answers[active.id] || [])[qIndex] === cIndex;
+                          const showKey = Boolean(item);
+                          const isCorrectChoice =
+                            cIndex === question.correctIndex;
+                          return (
+                            <label
+                              key={`${question.id}-${cIndex}`}
+                              className={`flex cursor-pointer items-start gap-3 text-sm ${
+                                showKey && isCorrectChoice
+                                  ? "font-semibold text-navy"
+                                  : showKey && selected && !isCorrectChoice
+                                    ? "text-danger"
+                                    : ""
+                              }`}
+                            >
+                              <input
+                                type="radio"
+                                name={`${active.id}-${question.id}`}
+                                checked={selected}
+                                onChange={() => {
+                                  setAnswers((prev) => {
+                                    const current = [
+                                      ...(prev[active.id] ||
+                                        active.quizQuestions.map(() => -1)),
+                                    ];
+                                    current[qIndex] = cIndex;
+                                    return { ...prev, [active.id]: current };
+                                  });
+                                  setReviews((prev) => {
+                                    if (!prev[active.id]) return prev;
+                                    const next = { ...prev };
+                                    delete next[active.id];
+                                    return next;
+                                  });
+                                  setError("");
+                                  setMessage("");
+                                }}
+                                className="mt-1"
+                              />
+                              <span>
+                                {choice}
+                                {showKey && isCorrectChoice
+                                  ? " ✓ Correct answer"
+                                  : ""}
+                              </span>
+                            </label>
+                          );
+                        })}
                       </div>
-                      {item ? (
-                        <div className="mt-3 space-y-2 border-t border-line/70 pt-3 text-sm leading-relaxed">
-                          <p className="text-ink/85">
-                            <span className="font-semibold text-navy">
-                              Your answer:
-                            </span>{" "}
-                            {item.selectedChoice}
-                          </p>
-                          {!item.isCorrect ? (
-                            <>
-                              <p className="text-danger">
-                                <span className="font-semibold">
-                                  Why this is incorrect:
-                                </span>{" "}
-                                {item.incorrectReason}
-                              </p>
-                              <p className="text-navy">
-                                <span className="font-semibold">
-                                  Correct answer:
-                                </span>{" "}
-                                {item.correctChoice}
-                              </p>
-                              <p className="text-ink/85">
-                                <span className="font-semibold">
-                                  Why the correct answer is right:
-                                </span>{" "}
-                                {item.correctReason}
-                              </p>
-                            </>
-                          ) : (
-                            <p className="text-ink/85">
-                              <span className="font-semibold text-navy">
-                                Why this is correct:
-                              </span>{" "}
-                              {item.correctReason}
-                            </p>
-                          )}
-                        </div>
-                      ) : null}
+                      {item ? <QuizFeedback item={item} /> : null}
                     </fieldset>
                   );
                 })}
@@ -331,14 +379,7 @@ export function CourseLearner({
                       Question {index + 1} · Correct
                     </p>
                     <p className="mt-1 font-semibold text-navy">{item.prompt}</p>
-                    <p className="mt-2 text-ink/85">
-                      <span className="font-semibold text-navy">Answer:</span>{" "}
-                      {item.correctChoice}
-                    </p>
-                    <p className="mt-1 text-ink/85">
-                      <span className="font-semibold text-navy">Why:</span>{" "}
-                      {item.correctReason}
-                    </p>
+                    <QuizFeedback item={item} />
                   </article>
                 ))}
               </div>
