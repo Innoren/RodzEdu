@@ -1,5 +1,12 @@
 import type { CourseModule, ExamQuestion } from "@/lib/types";
-import { extractModuleHtmlByNumber } from "@/lib/formatModuleHtml";
+import {
+  extractModuleHtmlByNumber,
+  formatModuleContentForStorage,
+} from "@/lib/formatModuleHtml";
+import {
+  getUploadPreset,
+  type UploadPresetId,
+} from "@/lib/uploadPresets";
 
 export type ParsedCourseFromDocs = {
   title: string;
@@ -234,7 +241,7 @@ export function parseCourseWorkbookParagraphs(paragraphs: string[]): {
     return {
       modules: [],
       error:
-        "No modules found in the course document. Expected headings like “Module 1: MRI Safety Mindset”.",
+        "No modules found in the course document. Expected headings like “Module 1: Course Topic”.",
     };
   }
 
@@ -322,6 +329,8 @@ export function buildCourseFromDocuments(input: {
   examParagraphs: string[];
   /** Optional mammoth HTML for richer module formatting. */
   courseHtml?: string;
+  /** Upload style preset — defaults to Rodz Workbook (formatted). */
+  presetId?: UploadPresetId | string;
   overrides?: {
     title?: string;
     category?: string;
@@ -330,6 +339,7 @@ export function buildCourseFromDocuments(input: {
   };
 }): ParsedCourseFromDocs | { error: string } {
   const warnings: string[] = [];
+  const preset = getUploadPreset(input.presetId);
   const workbook = parseCourseWorkbookParagraphs(input.courseParagraphs);
   if (workbook.error) return { error: workbook.error };
 
@@ -354,19 +364,21 @@ export function buildCourseFromDocuments(input: {
 
   const category = input.overrides?.category?.trim() || guessCategory(title);
 
-  // Prefer Word HTML bodies when available so bold/lists survive into the learner view.
-  const moduleHtmlMap = input.courseHtml
-    ? extractModuleHtmlByNumber(input.courseHtml)
-    : new Map<number, string>();
+  // Prefer Word HTML bodies when the selected preset preserves formatting.
+  const moduleHtmlMap =
+    preset.preserveWordFormatting && input.courseHtml
+      ? extractModuleHtmlByNumber(input.courseHtml, preset, title)
+      : new Map<number, string>();
 
   const modulesWithoutIds = workbook.modules.map(
     ({ title: t, content, quizQuestions }, index) => {
       const moduleNumber =
         Number(t.match(/^module\s+(\d+)/i)?.[1] || index + 1);
       const htmlContent = moduleHtmlMap.get(moduleNumber);
+      const rawContent = htmlContent || content;
       return {
         title: t,
-        content: htmlContent || content,
+        content: formatModuleContentForStorage(rawContent, preset, title),
         quizQuestions: quizQuestions.map(
           ({ prompt, choices, correctIndex, explanation }) => ({
             prompt,
