@@ -21,3 +21,11 @@ export async function extractDocxText(
   const paragraphs = await extractDocxParagraphs(buffer);
   return paragraphs.join("\n");
 }
+
+/** Extract HTML that preserves Word bold/lists/structure via mammoth. */
+export async function extractDocxHtml(
+  buffer: ArrayBuffer | Buffer,
+): Promise<string> {
+  const result = await mammoth.convertToHtml({ buffer: toNodeBuffer(buffer) });
+  return result.value;
+}

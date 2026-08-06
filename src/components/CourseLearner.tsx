@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Course, Enrollment } from "@/lib/types";
 import { OpenExamButton } from "@/components/OpenExamButton";
+import { ModuleContent } from "@/components/ModuleContent";
 
 export function CourseLearner({
   course,
@@ -174,8 +175,8 @@ export function CourseLearner({
                 This module is complete.
               </p>
             ) : null}
-            <div className="mt-5 whitespace-pre-wrap text-base leading-relaxed text-ink/90">
-              {active.content}
+            <div className="mt-5">
+              <ModuleContent content={active.content} />
             </div>
 
             {active.quizQuestions.length > 0 && !activeDone && (

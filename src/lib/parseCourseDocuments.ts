@@ -1,4 +1,5 @@
 import type { CourseModule, ExamQuestion } from "@/lib/types";
+import { extractModuleHtmlByNumber } from "@/lib/formatModuleHtml";
 
 export type ParsedCourseFromDocs = {
   title: string;
@@ -319,6 +320,8 @@ export function parseCourseWorkbookParagraphs(paragraphs: string[]): {
 export function buildCourseFromDocuments(input: {
   courseParagraphs: string[];
   examParagraphs: string[];
+  /** Optional mammoth HTML for richer module formatting. */
+  courseHtml?: string;
   overrides?: {
     title?: string;
     category?: string;
@@ -351,16 +354,30 @@ export function buildCourseFromDocuments(input: {
 
   const category = input.overrides?.category?.trim() || guessCategory(title);
 
-  const modulesWithoutIds = workbook.modules.map(({ title: t, content, quizQuestions }) => ({
-    title: t,
-    content,
-    quizQuestions: quizQuestions.map(({ prompt, choices, correctIndex, explanation }) => ({
-      prompt,
-      choices,
-      correctIndex,
-      explanation,
-    })),
-  }));
+  // Prefer Word HTML bodies when available so bold/lists survive into the learner view.
+  const moduleHtmlMap = input.courseHtml
+    ? extractModuleHtmlByNumber(input.courseHtml)
+    : new Map<number, string>();
+
+  const modulesWithoutIds = workbook.modules.map(
+    ({ title: t, content, quizQuestions }, index) => {
+      const moduleNumber =
+        Number(t.match(/^module\s+(\d+)/i)?.[1] || index + 1);
+      const htmlContent = moduleHtmlMap.get(moduleNumber);
+      return {
+        title: t,
+        content: htmlContent || content,
+        quizQuestions: quizQuestions.map(
+          ({ prompt, choices, correctIndex, explanation }) => ({
+            prompt,
+            choices,
+            correctIndex,
+            explanation,
+          }),
+        ),
+      };
+    },
+  );
 
   for (const mod of workbook.modules) {
     if (mod.quizQuestions.length === 0) {

@@ -1,3 +1,31 @@
+function toPlainLines(content: string): string[] {
+  const raw = (content || "").replace(/\r\n/g, "\n").trim();
+  if (!raw) return [];
+
+  // HTML modules: strip tags into readable line breaks.
+  if (/<\/?[a-z][\s\S]*>/i.test(raw)) {
+    return raw
+      .replace(/<(script|style)[\s\S]*?<\/\1>/gi, "")
+      .replace(/<\/(p|div|h[1-6]|li|tr|br|aside)[^>]*>/gi, "\n")
+      .replace(/<(br|hr)\s*\/?>/gi, "\n")
+      .replace(/<li[^>]*>/gi, "\n")
+      .replace(/<[^>]+>/g, "")
+      .replace(/&nbsp;/g, " ")
+      .replace(/&amp;/g, "&")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&quot;/g, '"')
+      .split("\n")
+      .map((line) => line.replace(/\s+/g, " ").trim())
+      .filter(Boolean);
+  }
+
+  return raw
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
 /**
  * Pull a short public-facing overview from a module's full lesson text.
  * Prefers the "Module Overview" section when present.
@@ -7,13 +35,8 @@ export function getModuleOverview(
   options?: { maxChars?: number },
 ): string {
   const maxChars = options?.maxChars ?? 280;
-  const text = (content || "").replace(/\r\n/g, "\n").trim();
-  if (!text) return "Lesson content available after enrollment.";
-
-  const lines = text
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean);
+  const lines = toPlainLines(content);
+  if (!lines.length) return "Lesson content available after enrollment.";
 
   // Prefer explicit Module Overview section.
   const overviewIdx = lines.findIndex((line) =>

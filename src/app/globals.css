@@ -270,6 +270,84 @@ a {
   font-variant-numeric: tabular-nums;
 }
 
+.module-content {
+  color: var(--ink);
+  font-size: 1.05rem;
+  line-height: 1.7;
+}
+
+.module-content > * + * {
+  margin-top: 0.95rem;
+}
+
+.module-content .module-heading,
+.module-content h2,
+.module-content h3,
+.module-content h4 {
+  margin-top: 1.75rem;
+  margin-bottom: 0.55rem;
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 1.35rem;
+  line-height: 1.3;
+  color: var(--navy);
+}
+
+.module-content .module-heading:first-child,
+.module-content h2:first-child,
+.module-content h3:first-child {
+  margin-top: 0;
+}
+
+.module-content p {
+  margin: 0;
+  color: rgba(27, 42, 53, 0.9);
+}
+
+.module-content .module-lead {
+  color: var(--muted);
+  font-style: italic;
+}
+
+.module-content strong {
+  color: var(--navy);
+  font-weight: 650;
+}
+
+.module-content em {
+  color: rgba(27, 42, 53, 0.85);
+}
+
+.module-content ul,
+.module-content ol,
+.module-content .module-list {
+  margin: 0.35rem 0 0;
+  padding-left: 1.35rem;
+}
+
+.module-content li + li {
+  margin-top: 0.4rem;
+}
+
+.module-content a {
+  color: var(--teal);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.module-content .module-tip,
+.module-content aside.module-tip {
+  margin-top: 1.25rem;
+  border-left: 3px solid var(--teal);
+  background: rgba(34, 138, 156, 0.08);
+  padding: 0.9rem 1rem;
+}
+
+.module-content .module-tip p {
+  margin: 0;
+  color: var(--navy);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .hero-plane::before,
   .hero-plane::after,

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { createCourse } from "@/lib/db";
-import { extractDocxParagraphs } from "@/lib/docx";
+import { extractDocxHtml, extractDocxParagraphs } from "@/lib/docx";
 import { buildCourseFromDocuments } from "@/lib/parseCourseDocuments";
 
 export const runtime = "nodejs";
@@ -37,14 +37,18 @@ export async function POST(request: Request) {
   }
 
   try {
-    const [courseParagraphs, examParagraphs] = await Promise.all([
-      extractDocxParagraphs(await courseFile.arrayBuffer()),
-      extractDocxParagraphs(await examFile.arrayBuffer()),
+    const courseBuffer = await courseFile.arrayBuffer();
+    const examBuffer = await examFile.arrayBuffer();
+    const [courseParagraphs, examParagraphs, courseHtml] = await Promise.all([
+      extractDocxParagraphs(courseBuffer),
+      extractDocxParagraphs(examBuffer),
+      extractDocxHtml(courseBuffer),
     ]);
 
     const built = buildCourseFromDocuments({
       courseParagraphs,
       examParagraphs,
+      courseHtml,
       overrides: {
         title: String(form.get("title") || ""),
         category: String(form.get("category") || ""),
