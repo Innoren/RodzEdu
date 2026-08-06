@@ -126,9 +126,14 @@ async function main() {
         fromDoc.quizQuestions.length === existing.quizQuestions.length
           ? fromDoc.quizQuestions.map((q, qIndex) => ({
               ...q,
-              id: existing.quizQuestions[qIndex]?.id || q.id,
+              id:
+                existing.quizQuestions[qIndex]?.id ||
+                `mq-${index + 1}-${qIndex + 1}`,
             }))
-          : fromDoc.quizQuestions,
+          : fromDoc.quizQuestions.map((q, qIndex) => ({
+              ...q,
+              id: `mq-${index + 1}-${qIndex + 1}`,
+            })),
     };
   });
 
