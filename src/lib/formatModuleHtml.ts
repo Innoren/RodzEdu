@@ -74,7 +74,44 @@ export function polishModuleHtml(html: string): string {
     /<p>\s*<strong>\s*[^<]{0,80}Essentials\s*<\/strong>\s*<\/p>/gi,
     (match) => (/module\s+\d+/i.test(match) ? match : ""),
   );
+
+  // Collapse near-duplicate consecutive paragraphs (common in Word drafts).
+  out = collapseNearDuplicateParagraphs(out);
   return out.trim();
+}
+
+function normalizeComparableText(html: string): string {
+  return html
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase()
+    .replace(/[^\w\s]/g, "");
+}
+
+function collapseNearDuplicateParagraphs(html: string): string {
+  return html.replace(
+    /(<p\b[^>]*>[\s\S]*?<\/p>)(\s*)(<p\b[^>]*>[\s\S]*?<\/p>)/gi,
+    (full, first: string, space: string, second: string) => {
+      const a = normalizeComparableText(first);
+      const b = normalizeComparableText(second);
+      if (!a || !b) return full;
+      if (a === b) return first;
+      // Near-duplicate: same opening clause (e.g. two “MRI technology continues…” lines).
+      const aStart = a.slice(0, 48);
+      const bStart = b.slice(0, 48);
+      if (
+        aStart.length >= 40 &&
+        aStart === bStart &&
+        Math.abs(a.length - b.length) < 40
+      ) {
+        // Prefer the longer / more complete wording.
+        return a.length >= b.length ? first : second;
+      }
+      return full;
+    },
+  );
 }
 
 /**
