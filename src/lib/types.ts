@@ -54,6 +54,11 @@ export type Course = {
   description: string;
   published: boolean;
   featured: boolean;
+  /**
+   * Max scored final-exam attempts per enrollment.
+   * 0 = unlimited, 1 = single attempt, 3 = three attempts (default).
+   */
+  maxExamAttempts: number;
   /** Legacy overview text; modules are the primary learning path. */
   content: string;
   modules: CourseModule[];
@@ -90,6 +95,8 @@ export type Enrollment = {
   completedModuleIds: string[];
   certificateId?: string;
   score?: number;
+  /** Number of scored final-exam submissions for this enrollment. */
+  examAttemptCount: number;
   purchasedAt: string;
   completedAt?: string;
   lastActivityAt: string;

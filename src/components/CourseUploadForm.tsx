@@ -2,6 +2,11 @@
 
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
+import {
+  DEFAULT_MAX_EXAM_ATTEMPTS,
+  EXAM_ATTEMPT_OPTIONS,
+  normalizeMaxExamAttempts,
+} from "@/lib/examAttempts";
 import { parseExamBulk } from "@/lib/parseExamBulk";
 
 type QuestionDraft = {
@@ -86,6 +91,7 @@ export function CourseUploadForm() {
       content,
       published: form.get("published") === "on",
       featured: form.get("featured") === "on",
+      maxExamAttempts: normalizeMaxExamAttempts(form.get("maxExamAttempts")),
       modules: [
         {
           title: "Module 1 — Foundations",
@@ -407,6 +413,21 @@ export function CourseUploadForm() {
           ))}
         </div>
       </div>
+
+      <label className="block text-sm font-medium text-navy">
+        Final exam attempts
+        <select
+          name="maxExamAttempts"
+          defaultValue={String(DEFAULT_MAX_EXAM_ATTEMPTS)}
+          className="mt-1 w-full max-w-xs border border-line px-3 py-2"
+        >
+          {EXAM_ATTEMPT_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </label>
 
       <label className="flex items-center gap-2 text-sm text-navy">
         <input type="checkbox" name="published" defaultChecked />

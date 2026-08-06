@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { createCourse } from "@/lib/db";
 import { extractDocxHtml, extractDocxParagraphs } from "@/lib/docx";
+import { normalizeMaxExamAttempts } from "@/lib/examAttempts";
 import { buildCourseFromDocuments } from "@/lib/parseCourseDocuments";
 
 export const runtime = "nodejs";
@@ -90,6 +91,7 @@ export async function POST(request: Request) {
       })),
       published: form.get("published") === "on" || form.get("published") === "true",
       featured: form.get("featured") === "on" || form.get("featured") === "true",
+      maxExamAttempts: normalizeMaxExamAttempts(form.get("maxExamAttempts")),
       examQuestions: built.examQuestions.map((q, index) => ({
         id: `q${index + 1}`,
         prompt: q.prompt,

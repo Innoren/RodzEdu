@@ -1,3 +1,4 @@
+import { normalizeMaxExamAttempts } from "./examAttempts";
 import type {
   Certificate,
   Course,
@@ -68,6 +69,7 @@ export function normalizeDatabase(raw: unknown): Database {
     return {
       ...course,
       featured: Boolean(course.featured),
+      maxExamAttempts: normalizeMaxExamAttempts(course.maxExamAttempts),
       modules,
       examQuestions: Array.isArray(course.examQuestions)
         ? course.examQuestions
@@ -82,6 +84,7 @@ export function normalizeDatabase(raw: unknown): Database {
     return {
       ...enrollment,
       completedModuleIds,
+      examAttemptCount: Math.max(0, Number(enrollment.examAttemptCount || 0)),
     };
   });
 

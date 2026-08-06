@@ -2,6 +2,12 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import {
+  canAttemptExam,
+  examAttemptLabel,
+  examAttemptsRemaining,
+  normalizeMaxExamAttempts,
+} from "@/lib/examAttempts";
 import type { Course, Enrollment, ExamAnswerReview } from "@/lib/types";
 import { buildQuizAnswerReview } from "@/lib/quizReview";
 import { OpenExamButton } from "@/components/OpenExamButton";
@@ -185,7 +191,22 @@ export function CourseLearner({
     }
   }
 
-  const examReady = progress >= 100 || status === "exam_ready";
+  const maxExamAttempts = normalizeMaxExamAttempts(course.maxExamAttempts);
+  const examAttemptCount = Math.max(
+    0,
+    Number(enrollment.examAttemptCount || 0),
+  );
+  const attemptsRemaining = examAttemptsRemaining(
+    maxExamAttempts,
+    examAttemptCount,
+  );
+  const attemptsOk = canAttemptExam({
+    maxExamAttempts,
+    examAttemptCount,
+    status,
+  });
+  const modulesDone = progress >= 100 || status === "exam_ready";
+  const examReady = modulesDone && attemptsOk;
   const activeDone = active ? completedIds.includes(active.id) : false;
 
   return (
@@ -225,13 +246,27 @@ export function CourseLearner({
         <div className="mt-5">
           <OpenExamButton
             enrollmentId={enrollment.id}
-            disabled={!examReady && status !== "completed"}
+            disabled={!examReady}
+            label={
+              examAttemptCount > 0 && attemptsOk
+                ? "Retake final exam"
+                : "Take final exam"
+            }
+            hint={
+              !modulesDone
+                ? "Finish every module quiz to unlock the final exam."
+                : !attemptsOk &&
+                    (status === "completed" || status === "exam_passed")
+                  ? "Exam already passed."
+                  : !attemptsOk
+                    ? `No exam attempts left (${examAttemptLabel(maxExamAttempts)}).`
+                    : attemptsRemaining === null
+                      ? `${examAttemptLabel(maxExamAttempts)} · Attempt ${examAttemptCount + 1}`
+                      : `${attemptsRemaining} of ${maxExamAttempts} attempt${
+                          maxExamAttempts === 1 ? "" : "s"
+                        } remaining`
+            }
           />
-          {!examReady && status !== "completed" && (
-            <p className="mt-2 text-xs text-muted">
-              Finish every module quiz to unlock the final exam.
-            </p>
-          )}
         </div>
       </aside>
 

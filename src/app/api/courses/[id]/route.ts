@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { deleteCourse, getCourseById, updateCourse } from "@/lib/db";
+import { normalizeMaxExamAttempts } from "@/lib/examAttempts";
 import type { ExamQuestion } from "@/lib/types";
 
 function unauthorized() {
@@ -81,6 +82,10 @@ export async function PATCH(
     published:
       body.published !== undefined ? Boolean(body.published) : undefined,
     featured: body.featured !== undefined ? Boolean(body.featured) : undefined,
+    maxExamAttempts:
+      body.maxExamAttempts !== undefined
+        ? normalizeMaxExamAttempts(body.maxExamAttempts)
+        : undefined,
     examQuestions,
   });
 

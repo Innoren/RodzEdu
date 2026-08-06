@@ -1,12 +1,23 @@
+import { DEFAULT_MAX_EXAM_ATTEMPTS } from "./examAttempts";
 import type { Course, Database } from "./types";
 
 function withModules(
-  course: Omit<Course, "modules" | "featured"> & {
+  course: Omit<Course, "modules" | "featured" | "maxExamAttempts"> & {
     modules?: Course["modules"];
     featured?: boolean;
+    maxExamAttempts?: number;
   },
 ): Course {
-  const base = { ...course, featured: Boolean(course.featured) };
+  const base = {
+    ...course,
+    featured: Boolean(course.featured),
+    maxExamAttempts:
+      course.maxExamAttempts === 0 ||
+      course.maxExamAttempts === 1 ||
+      course.maxExamAttempts === 3
+        ? course.maxExamAttempts
+        : DEFAULT_MAX_EXAM_ATTEMPTS,
+  };
   if (course.modules?.length) return { ...base, modules: course.modules } as Course;
   return {
     ...base,
@@ -297,6 +308,7 @@ export const seedData: Database = {
         "A practical introduction to MRI safety zones, screening, projectile risk, and implant considerations for imaging professionals.",
       published: true,
       featured: true,
+      maxExamAttempts: DEFAULT_MAX_EXAM_ATTEMPTS,
       content:
         "MRI safety is a professional responsibility. This example course walks through zone control, patient screening, and day-to-day decisions that protect patients and staff.",
       instructorId: "user-teacher",
@@ -492,6 +504,7 @@ Before the final exam, review:
       status: "in_progress",
       progressPercent: 50,
       completedModuleIds: ["course-rad-fundamentals-mod-1"],
+      examAttemptCount: 0,
       purchasedAt: "2026-06-01T14:00:00.000Z",
       lastActivityAt: "2026-07-10T16:00:00.000Z",
     },
@@ -502,6 +515,7 @@ Before the final exam, review:
       status: "in_progress",
       progressPercent: 50,
       completedModuleIds: ["course-mammo-basics-mod-1"],
+      examAttemptCount: 0,
       purchasedAt: "2026-06-15T10:00:00.000Z",
       lastActivityAt: "2026-07-12T11:00:00.000Z",
     },
@@ -512,6 +526,7 @@ Before the final exam, review:
       status: "purchased",
       progressPercent: 0,
       completedModuleIds: [],
+      examAttemptCount: 0,
       purchasedAt: "2026-07-20T14:00:00.000Z",
       lastActivityAt: "2026-07-28T16:00:00.000Z",
     },

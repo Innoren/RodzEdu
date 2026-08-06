@@ -5,6 +5,12 @@ import {
   listCertificatesForUser,
   listEnrollmentsForUser,
 } from "@/lib/db";
+import {
+  canAttemptExam,
+  examAttemptLabel,
+  examAttemptsRemaining,
+  normalizeMaxExamAttempts,
+} from "@/lib/examAttempts";
 import { formatDate, statusLabel } from "@/lib/format";
 import { PortalNav } from "@/components/PortalNav";
 import { OpenExamButton } from "@/components/OpenExamButton";
@@ -61,10 +67,38 @@ export default async function StudentPortalPage({
 
             {rows.map(({ enrollment, course }) => {
               if (!course) return null;
-              const examReady =
-                enrollment.progressPercent >= 100 &&
-                enrollment.status !== "completed";
+              const modulesDone = enrollment.progressPercent >= 100;
+              const maxExamAttempts = normalizeMaxExamAttempts(
+                course.maxExamAttempts,
+              );
+              const examAttemptCount = Math.max(
+                0,
+                Number(enrollment.examAttemptCount || 0),
+              );
+              const remaining = examAttemptsRemaining(
+                maxExamAttempts,
+                examAttemptCount,
+              );
+              const attemptsOk = canAttemptExam({
+                maxExamAttempts,
+                examAttemptCount,
+                status: enrollment.status,
+              });
+              const examReady = modulesDone && attemptsOk;
               const certificateId = enrollment.certificateId;
+              const examHint = !modulesDone
+                ? "Complete every module quiz to unlock the final exam."
+                : !attemptsOk &&
+                    (enrollment.status === "completed" ||
+                      enrollment.status === "exam_passed")
+                  ? "Exam already passed."
+                  : !attemptsOk
+                    ? `No exam attempts left (${examAttemptLabel(maxExamAttempts)}).`
+                    : remaining === null
+                      ? `${examAttemptLabel(maxExamAttempts)} · Attempt ${examAttemptCount + 1}`
+                      : `${remaining} of ${maxExamAttempts} attempt${
+                          maxExamAttempts === 1 ? "" : "s"
+                        } remaining`;
 
               return (
                 <article key={enrollment.id} className="panel p-5">
@@ -82,6 +116,7 @@ export default async function StudentPortalPage({
                         {typeof enrollment.score === "number"
                           ? ` · Score ${enrollment.score}%`
                           : ""}
+                        {` · ${examAttemptLabel(maxExamAttempts)}`}
                       </p>
                     </div>
                     <span className="text-sm font-semibold text-navy">
@@ -118,7 +153,13 @@ export default async function StudentPortalPage({
                     </Link>
                     <OpenExamButton
                       enrollmentId={enrollment.id}
-                      disabled={!examReady && enrollment.status !== "completed"}
+                      disabled={!examReady}
+                      label={
+                        examAttemptCount > 0 && attemptsOk
+                          ? "Retake final exam"
+                          : "Take final exam"
+                      }
+                      hint={examHint}
                     />
                     {certificateId ? (
                       <Link
@@ -135,12 +176,6 @@ export default async function StudentPortalPage({
                       Course details
                     </Link>
                   </div>
-                  {!examReady && enrollment.status !== "completed" && (
-                    <p className="mt-3 text-xs text-muted">
-                      Complete every module quiz to unlock the final exam.
-                      Progress saves automatically when you finish a module.
-                    </p>
-                  )}
                   {enrollment.status === "completed" && !certificateId && (
                     <p className="mt-3 text-xs text-muted">
                       Certificate issuance is linked to a passing exam score.

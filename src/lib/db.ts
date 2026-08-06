@@ -1,6 +1,10 @@
 import { get, put } from "@vercel/blob";
 import { promises as fs } from "fs";
 import path from "path";
+import {
+  canAttemptExam,
+  normalizeMaxExamAttempts,
+} from "./examAttempts";
 import { applyDiscount, normalizeDatabase, slugify } from "./normalize";
 import { buildQuizAnswerReview } from "./quizReview";
 import { seedData } from "./seed";
@@ -313,6 +317,7 @@ export async function createCourse(
     description: input.description,
     published: input.published,
     featured: Boolean(input.featured),
+    maxExamAttempts: normalizeMaxExamAttempts(input.maxExamAttempts),
     content: input.content,
     modules: input.modules?.length
       ? input.modules
@@ -508,6 +513,7 @@ export async function enrollUser(
     status: "purchased",
     progressPercent: 0,
     completedModuleIds: [],
+    examAttemptCount: 0,
     purchasedAt: now,
     lastActivityAt: now,
   };
@@ -521,6 +527,7 @@ function clearEnrollmentProgress(enrollment: Enrollment) {
   enrollment.progressPercent = 0;
   enrollment.status = "purchased";
   enrollment.score = undefined;
+  enrollment.examAttemptCount = 0;
   enrollment.completedAt = undefined;
   enrollment.certificateId = undefined;
   enrollment.lastActivityAt = new Date().toISOString();
@@ -643,6 +650,7 @@ export async function advanceEnrollmentProgress(input: {
   enrollment.completedModuleIds = completedIds;
   enrollment.progressPercent = Math.round((completedIds.length / total) * 100);
   enrollment.score = undefined;
+  enrollment.examAttemptCount = 0;
   enrollment.completedAt = undefined;
   enrollment.certificateId = undefined;
   enrollment.lastActivityAt = new Date().toISOString();
@@ -721,13 +729,20 @@ export async function updateEnrollmentProgress(
 export async function submitExam(
   enrollmentId: string,
   answers: number[],
-): Promise<{
-  enrollment: Enrollment;
-  score: number;
-  passed: boolean;
-  certificate?: Certificate;
-  review: ExamAnswerReview[];
-} | null> {
+): Promise<
+  | {
+      enrollment: Enrollment;
+      score: number;
+      passed: boolean;
+      certificate?: Certificate;
+      review: ExamAnswerReview[];
+      examAttemptCount: number;
+      maxExamAttempts: number;
+      attemptsRemaining: number | null;
+    }
+  | { error: string }
+  | null
+> {
   const db = await ensureDb();
   const enrollment = db.enrollments.find((e) => e.id === enrollmentId);
   if (!enrollment) return null;
@@ -735,6 +750,28 @@ export async function submitExam(
   const course = db.courses.find((c) => c.id === enrollment.courseId);
   const student = db.users.find((u) => u.id === enrollment.userId);
   if (!course || !student) return null;
+
+  const maxExamAttempts = normalizeMaxExamAttempts(course.maxExamAttempts);
+  const usedAttempts = Math.max(0, Number(enrollment.examAttemptCount || 0));
+
+  if (enrollment.status === "completed" || enrollment.status === "exam_passed") {
+    return { error: "This exam is already passed. No further attempts are needed." };
+  }
+
+  if (
+    !canAttemptExam({
+      maxExamAttempts,
+      examAttemptCount: usedAttempts,
+      status: enrollment.status,
+    })
+  ) {
+    return {
+      error:
+        maxExamAttempts === 1
+          ? "You have used your only exam attempt for this course."
+          : `You have used all ${maxExamAttempts} exam attempts for this course.`,
+    };
+  }
 
   const total = course.examQuestions.length || 1;
   let correct = 0;
@@ -772,6 +809,7 @@ export async function submitExam(
   const passed = score >= 75;
   const now = new Date().toISOString();
 
+  enrollment.examAttemptCount = usedAttempts + 1;
   enrollment.score = score;
   enrollment.lastActivityAt = now;
   enrollment.status = (passed ? "exam_passed" : "exam_failed") as EnrollmentStatus;
@@ -808,8 +846,22 @@ export async function submitExam(
     }
   }
 
+  const attemptsRemaining =
+    maxExamAttempts === 0
+      ? null
+      : Math.max(0, maxExamAttempts - enrollment.examAttemptCount);
+
   await writeDb(db);
-  return { enrollment, score, passed, certificate, review };
+  return {
+    enrollment,
+    score,
+    passed,
+    certificate,
+    review,
+    examAttemptCount: enrollment.examAttemptCount,
+    maxExamAttempts,
+    attemptsRemaining,
+  };
 }
 
 export async function completeModule(input: {

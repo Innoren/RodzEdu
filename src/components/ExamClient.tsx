@@ -2,24 +2,35 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { examAttemptLabel } from "@/lib/examAttempts";
 import type { Course, ExamAnswerReview } from "@/lib/types";
 
 export function ExamClient({
   enrollmentId,
   course,
+  examAttemptCount,
+  maxExamAttempts,
+  attemptsRemaining,
 }: {
   enrollmentId: string;
   course: Course;
+  examAttemptCount: number;
+  maxExamAttempts: number;
+  attemptsRemaining: number | null;
 }) {
   const [answers, setAnswers] = useState<number[]>(
     () => course.examQuestions.map(() => -1),
   );
+  const [usedAttempts, setUsedAttempts] = useState(examAttemptCount);
+  const [remaining, setRemaining] = useState(attemptsRemaining);
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<{
     score: number;
     passed: boolean;
     certificateId?: string;
     review: ExamAnswerReview[];
+    attemptsRemaining: number | null;
+    examAttemptCount: number;
   } | null>(null);
   const [error, setError] = useState("");
 
@@ -48,11 +59,27 @@ export function ExamClient({
         return;
       }
 
+      const nextUsed =
+        typeof data.examAttemptCount === "number"
+          ? data.examAttemptCount
+          : usedAttempts + 1;
+      const nextRemaining =
+        typeof data.attemptsRemaining === "number"
+          ? data.attemptsRemaining
+          : data.attemptsRemaining === null
+            ? null
+            : remaining === null
+              ? null
+              : Math.max(0, remaining - 1);
+      setUsedAttempts(nextUsed);
+      setRemaining(nextRemaining);
       setResult({
         score: data.score,
         passed: data.passed,
         certificateId: data.certificate?.id || data.enrollment?.certificateId,
         review: Array.isArray(data.review) ? data.review : [],
+        attemptsRemaining: nextRemaining,
+        examAttemptCount: nextUsed,
       });
     } catch {
       setError("Unable to submit exam. Please try again.");
@@ -62,6 +89,9 @@ export function ExamClient({
   }
 
   if (result) {
+    const canRetake =
+      !result.passed &&
+      (result.attemptsRemaining === null || result.attemptsRemaining > 0);
     return (
       <div className="mx-auto max-w-3xl space-y-6">
         <div className="panel p-8 text-center">
@@ -72,7 +102,15 @@ export function ExamClient({
           <p className="mt-4 text-muted">
             {result.passed
               ? "Congratulations — your certificate was issued automatically. Review your answers below, then download your certificate."
-              : "A score of 75% is required to pass. Review the feedback below, study the modules again, then retake the exam from your portal."}
+              : canRetake
+                ? `A score of 75% is required to pass. Review the feedback below, study the modules again, then retake the exam. ${
+                    result.attemptsRemaining === null
+                      ? "Attempts are unlimited for this course."
+                      : `You have ${result.attemptsRemaining} attempt${
+                          result.attemptsRemaining === 1 ? "" : "s"
+                        } remaining.`
+                  }`
+                : "A score of 75% is required to pass. You have used all exam attempts for this course. Contact your instructor or RodzEdu staff if you need another attempt."}
           </p>
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             {result.passed && result.certificateId ? (
@@ -92,6 +130,19 @@ export function ExamClient({
             >
               Review modules
             </Link>
+            {canRetake ? (
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => {
+                  setResult(null);
+                  setAnswers(course.examQuestions.map(() => -1));
+                  setError("");
+                }}
+              >
+                Retake exam
+              </button>
+            ) : null}
           </div>
         </div>
 
@@ -157,6 +208,12 @@ export function ExamClient({
           </p>
           <p className="font-[family-name:var(--font-display)] text-xl text-navy">
             {course.title}
+          </p>
+          <p className="mt-1 text-xs text-muted">
+            {examAttemptLabel(maxExamAttempts)}
+            {remaining === null
+              ? ` · Attempt ${usedAttempts + 1}`
+              : ` · Attempt ${usedAttempts + 1} of ${maxExamAttempts} (${remaining} left after this)`}
           </p>
         </div>
         <p className="exam-timer text-sm font-semibold text-navy">

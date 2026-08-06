@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { createCourse } from "@/lib/db";
+import { normalizeMaxExamAttempts } from "@/lib/examAttempts";
 import type { ExamQuestion } from "@/lib/types";
 
 export async function POST(request: Request) {
@@ -73,6 +74,7 @@ export async function POST(request: Request) {
     modules,
     published: Boolean(body.published),
     featured: Boolean(body.featured),
+    maxExamAttempts: normalizeMaxExamAttempts(body.maxExamAttempts),
     examQuestions,
   });
 

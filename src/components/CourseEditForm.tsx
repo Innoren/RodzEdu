@@ -2,6 +2,11 @@
 
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
+import {
+  DEFAULT_MAX_EXAM_ATTEMPTS,
+  EXAM_ATTEMPT_OPTIONS,
+  normalizeMaxExamAttempts,
+} from "@/lib/examAttempts";
 import { parseExamBulk } from "@/lib/parseExamBulk";
 import type { Course } from "@/lib/types";
 
@@ -84,6 +89,9 @@ export function CourseEditForm({ course }: { course: Course }) {
           content: form.get("content"),
           published: form.get("published") === "on",
           featured: form.get("featured") === "on",
+          maxExamAttempts: normalizeMaxExamAttempts(
+            form.get("maxExamAttempts"),
+          ),
           examQuestions,
         }),
       });
@@ -126,7 +134,7 @@ export function CourseEditForm({ course }: { course: Course }) {
         />
       </label>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <label className="block text-sm font-medium text-navy">
           Category
           <input
@@ -155,6 +163,24 @@ export function CourseEditForm({ course }: { course: Course }) {
             defaultValue={(course.priceCents / 100).toFixed(2)}
             className="mt-1 w-full border border-line px-3 py-2"
           />
+        </label>
+        <label className="block text-sm font-medium text-navy">
+          Final exam attempts
+          <select
+            name="maxExamAttempts"
+            defaultValue={String(
+              normalizeMaxExamAttempts(
+                course.maxExamAttempts ?? DEFAULT_MAX_EXAM_ATTEMPTS,
+              ),
+            )}
+            className="mt-1 w-full border border-line px-3 py-2"
+          >
+            {EXAM_ATTEMPT_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
         </label>
       </div>
 

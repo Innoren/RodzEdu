@@ -30,6 +30,9 @@ export async function POST(request: Request) {
   if (!result) {
     return NextResponse.json({ error: "Unable to score exam" }, { status: 400 });
   }
+  if ("error" in result) {
+    return NextResponse.json({ error: result.error }, { status: 400 });
+  }
 
   return NextResponse.json(result);
 }
