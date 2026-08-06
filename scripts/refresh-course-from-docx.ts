@@ -142,16 +142,10 @@ async function main() {
     description: course.description || built.description,
     modules: nextModules,
     // Keep existing exam question IDs when counts match.
-    examQuestions:
-      built.examQuestions.length === course.examQuestions.length
-        ? built.examQuestions.map((q, index) => ({
-            ...q,
-            id: course.examQuestions[index]?.id || q.id,
-          }))
-        : built.examQuestions.map((q, index) => ({
-            ...q,
-            id: course.examQuestions[index]?.id || `q${index + 1}`,
-          })),
+    examQuestions: built.examQuestions.map((q, index) => ({
+      ...q,
+      id: course.examQuestions[index]?.id || `q${index + 1}`,
+    })),
   });
 
   const sample = updated?.modules[0]?.content || "";
