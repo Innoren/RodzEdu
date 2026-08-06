@@ -30,7 +30,6 @@ const linksByRole: Record<Role, { href: string; label: string }[]> = {
     { href: "/ceo/settings", label: "Site Settings" },
     { href: "/teacher", label: "Students" },
     { href: "/admin", label: "Courses" },
-    { href: "/admin/new", label: "Upload Course" },
     { href: "/admin/support", label: "Support Tickets" },
     { href: "/admin/instructors", label: "Instructors" },
     { href: "/admin/bundles", label: "Bundles" },

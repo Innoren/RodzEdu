@@ -3,11 +3,6 @@ import { getSessionUser } from "@/lib/auth";
 import { createCourse } from "@/lib/db";
 import { extractDocxHtml, extractDocxParagraphs } from "@/lib/docx";
 import { buildCourseFromDocuments } from "@/lib/parseCourseDocuments";
-import {
-  DEFAULT_UPLOAD_PRESET_ID,
-  getUploadPreset,
-  isUploadPresetId,
-} from "@/lib/uploadPresets";
 
 export const runtime = "nodejs";
 
@@ -20,11 +15,6 @@ export async function POST(request: Request) {
   const form = await request.formData();
   const courseFile = form.get("courseDocument");
   const examFile = form.get("examDocument");
-  const presetRaw = String(form.get("uploadPreset") || DEFAULT_UPLOAD_PRESET_ID);
-  const presetId = isUploadPresetId(presetRaw)
-    ? presetRaw
-    : DEFAULT_UPLOAD_PRESET_ID;
-  const preset = getUploadPreset(presetId);
 
   if (!(courseFile instanceof File) || !(examFile instanceof File)) {
     return NextResponse.json(
@@ -52,16 +42,13 @@ export async function POST(request: Request) {
     const [courseParagraphs, examParagraphs, courseHtml] = await Promise.all([
       extractDocxParagraphs(courseBuffer),
       extractDocxParagraphs(examBuffer),
-      preset.preserveWordFormatting
-        ? extractDocxHtml(courseBuffer)
-        : Promise.resolve(""),
+      extractDocxHtml(courseBuffer),
     ]);
 
     const built = buildCourseFromDocuments({
       courseParagraphs,
       examParagraphs,
-      courseHtml: courseHtml || undefined,
-      presetId,
+      courseHtml,
       overrides: {
         title: String(form.get("title") || ""),
         category: String(form.get("category") || ""),
@@ -115,7 +102,6 @@ export async function POST(request: Request) {
     return NextResponse.json({
       course,
       summary: {
-        preset: preset.label,
         modules: built.modules.length,
         moduleQuizzes: built.modules.reduce(
           (sum, m) => sum + m.quizQuestions.length,
