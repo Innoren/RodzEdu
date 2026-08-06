@@ -3,6 +3,7 @@ import { requireUser } from "@/lib/auth";
 import { listAllCourses } from "@/lib/db";
 import { formatMoney } from "@/lib/format";
 import { PortalNav } from "@/components/PortalNav";
+import { CourseDeleteButton } from "@/components/CourseDeleteButton";
 
 export default async function AdminPortalPage() {
   const user = await requireUser(["admin", "ceo"]);
@@ -20,8 +21,7 @@ export default async function AdminPortalPage() {
                 Course manager
               </h1>
               <p className="mt-3 text-muted">
-                Upload and publish new continuing education courses for the
-                RodzEdu catalog.
+                Upload, edit, publish, or remove continuing education courses.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -46,6 +46,15 @@ export default async function AdminPortalPage() {
           </p>
 
           <div className="mt-8 space-y-3">
+            {courses.length === 0 ? (
+              <div className="panel p-6 text-muted">
+                No courses yet.{" "}
+                <Link href="/admin/new" className="font-semibold text-teal">
+                  Upload your first course
+                </Link>
+                .
+              </div>
+            ) : null}
             {courses.map((course) => (
               <article
                 key={course.id}
@@ -55,6 +64,7 @@ export default async function AdminPortalPage() {
                   <p className="text-xs font-semibold uppercase tracking-[0.12em] text-teal">
                     {course.category}
                     {!course.published ? " · Draft" : " · Published"}
+                    {course.featured ? " · Featured" : ""}
                   </p>
                   <h2 className="mt-1 font-[family-name:var(--font-display)] text-2xl text-navy">
                     {course.title}
@@ -65,12 +75,24 @@ export default async function AdminPortalPage() {
                     {course.examQuestions.length} exam questions
                   </p>
                 </div>
-                <Link
-                  href={`/courses/${course.slug}`}
-                  className="btn btn-ghost !px-3 !py-2 text-sm"
-                >
-                  Preview
-                </Link>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Link
+                    href={`/courses/${course.slug}`}
+                    className="btn btn-ghost !px-3 !py-2 text-sm"
+                  >
+                    Preview
+                  </Link>
+                  <Link
+                    href={`/admin/courses/${course.id}/edit`}
+                    className="btn btn-navy !px-3 !py-2 text-sm"
+                  >
+                    Edit
+                  </Link>
+                  <CourseDeleteButton
+                    courseId={course.id}
+                    courseTitle={course.title}
+                  />
+                </div>
               </article>
             ))}
           </div>

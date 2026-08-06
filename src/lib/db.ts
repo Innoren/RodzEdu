@@ -341,14 +341,62 @@ export async function updateCourse(
   const db = await ensureDb();
   const idx = db.courses.findIndex((c) => c.id === id);
   if (idx === -1) return undefined;
+
+  const current = db.courses[idx];
+  const cleanPatch = Object.fromEntries(
+    Object.entries(patch).filter(([, value]) => value !== undefined),
+  ) as Partial<Course>;
+
+  const nextTitle = cleanPatch.title ?? current.title;
+  const slug =
+    cleanPatch.slug ||
+    (cleanPatch.title && cleanPatch.title !== current.title
+      ? nextTitle
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/(^-|-$)/g, "")
+      : current.slug);
+
   db.courses[idx] = {
-    ...db.courses[idx],
-    ...patch,
+    ...current,
+    ...cleanPatch,
     id,
+    slug,
+    featured:
+      cleanPatch.featured !== undefined
+        ? Boolean(cleanPatch.featured)
+        : current.featured,
     updatedAt: new Date().toISOString(),
   };
   await writeDb(db);
   return db.courses[idx];
+}
+
+/** Delete a course and clean up enrollments, certificates, reviews, and bundles. */
+export async function deleteCourse(
+  id: string,
+): Promise<{ ok: true } | { error: string }> {
+  const db = await ensureDb();
+  if (!db.courses.some((c) => c.id === id)) {
+    return { error: "Course not found." };
+  }
+
+  db.courses = db.courses.filter((c) => c.id !== id);
+  db.enrollments = db.enrollments.filter((e) => e.courseId !== id);
+  db.certificates = db.certificates.filter((c) => c.courseId !== id);
+  db.reviews = db.reviews.filter((r) => r.courseId !== id);
+  db.bundles = db.bundles
+    .map((bundle) => ({
+      ...bundle,
+      courseIds: bundle.courseIds.filter((courseId) => courseId !== id),
+    }))
+    .filter((bundle) => bundle.courseIds.length > 0);
+  for (const ticket of db.tickets) {
+    if (ticket.courseId === id) delete ticket.courseId;
+  }
+
+  await writeDb(db);
+  return { ok: true };
 }
 
 export async function listEnrollments(): Promise<Enrollment[]> {
