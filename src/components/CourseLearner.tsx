@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { Course, Enrollment } from "@/lib/types";
+import type { Course, Enrollment, ExamAnswerReview } from "@/lib/types";
 import { OpenExamButton } from "@/components/OpenExamButton";
 import { ModuleContent } from "@/components/ModuleContent";
 
@@ -20,6 +20,9 @@ export function CourseLearner({
     )?.id || course.modules[0]?.id,
   );
   const [answers, setAnswers] = useState<Record<string, number[]>>({});
+  const [reviews, setReviews] = useState<Record<string, ExamAnswerReview[]>>(
+    {},
+  );
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -33,6 +36,8 @@ export function CourseLearner({
     () => course.modules.find((m) => m.id === activeId),
     [activeId, course.modules],
   );
+
+  const activeReview = activeId ? reviews[activeId] : undefined;
 
   function quizAnswersFor(moduleId: string): number[] | undefined {
     return answers[moduleId];
@@ -83,6 +88,7 @@ export function CourseLearner({
       let data: {
         error?: string;
         enrollment?: Enrollment;
+        review?: ExamAnswerReview[];
       } = {};
       try {
         data = await res.json();
@@ -91,21 +97,34 @@ export function CourseLearner({
         return;
       }
 
+      if (Array.isArray(data.review)) {
+        setReviews((prev) => ({ ...prev, [active.id]: data.review! }));
+      }
+
       if (!res.ok || !data.enrollment) {
-        setError(data.error || "Unable to save progress.");
+        setError(
+          data.error ||
+            "One or more quiz answers were incorrect. Review the feedback and try again.",
+        );
         return;
       }
 
       setCompletedIds(data.enrollment.completedModuleIds || []);
       setProgress(data.enrollment.progressPercent);
       setStatus(data.enrollment.status);
-      setMessage("Progress saved. You can leave and return anytime.");
+      setMessage(
+        "All answers correct — progress saved. You can leave and return anytime.",
+      );
       router.refresh();
 
       const next = course.modules.find(
         (m) => !data.enrollment!.completedModuleIds.includes(m.id),
       );
-      if (next) setActiveId(next.id);
+      if (next) {
+        // Keep review visible briefly; advance after a short moment is nicer
+        // but user asked to see feedback — stay on module when they just passed
+        // only auto-advance if they click continue. Don't auto-skip past review.
+      }
     } catch {
       setError("Unable to save progress. Check your connection and try again.");
     } finally {
@@ -185,49 +204,145 @@ export function CourseLearner({
                   Module quiz
                 </h3>
                 <p className="text-sm text-muted">
-                  Answer every question correctly, then click complete to save
-                  your progress.
+                  Answer every question, then check your answers. You&apos;ll
+                  see why each choice is right or wrong — and you must get them
+                  all correct to continue.
                 </p>
-                {active.quizQuestions.map((question, qIndex) => (
-                  <fieldset
-                    key={question.id}
-                    className="rounded-sm border border-line p-4"
-                  >
-                    <legend className="px-1 text-sm font-semibold text-navy">
-                      {qIndex + 1}. {question.prompt}
-                    </legend>
-                    <div className="mt-2 space-y-2">
-                      {question.choices.map((choice, cIndex) => (
-                        <label
-                          key={`${question.id}-${cIndex}`}
-                          className="flex cursor-pointer items-start gap-3 text-sm"
-                        >
-                          <input
-                            type="radio"
-                            name={`${active.id}-${question.id}`}
-                            checked={
-                              (answers[active.id] || [])[qIndex] === cIndex
-                            }
-                            onChange={() =>
-                              setAnswers((prev) => {
-                                const current = [
-                                  ...(prev[active.id] ||
-                                    active.quizQuestions.map(() => -1)),
-                                ];
-                                current[qIndex] = cIndex;
-                                return { ...prev, [active.id]: current };
-                              })
-                            }
-                            className="mt-1"
-                          />
-                          <span>{choice}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </fieldset>
-                ))}
+                {active.quizQuestions.map((question, qIndex) => {
+                  const item = activeReview?.find(
+                    (r) => r.questionId === question.id,
+                  );
+                  return (
+                    <fieldset
+                      key={question.id}
+                      className={`rounded-sm border p-4 ${
+                        item
+                          ? item.isCorrect
+                            ? "border-teal/40 bg-teal/5"
+                            : "border-danger/30 bg-red-50/60"
+                          : "border-line"
+                      }`}
+                    >
+                      <legend className="px-1 text-sm font-semibold text-navy">
+                        {qIndex + 1}. {question.prompt}
+                        {item ? (
+                          <span
+                            className={`ml-2 text-xs font-semibold uppercase tracking-[0.08em] ${
+                              item.isCorrect ? "text-teal" : "text-danger"
+                            }`}
+                          >
+                            {item.isCorrect ? "Correct" : "Incorrect"}
+                          </span>
+                        ) : null}
+                      </legend>
+                      <div className="mt-2 space-y-2">
+                        {question.choices.map((choice, cIndex) => (
+                          <label
+                            key={`${question.id}-${cIndex}`}
+                            className="flex cursor-pointer items-start gap-3 text-sm"
+                          >
+                            <input
+                              type="radio"
+                              name={`${active.id}-${question.id}`}
+                              checked={
+                                (answers[active.id] || [])[qIndex] === cIndex
+                              }
+                              onChange={() => {
+                                setAnswers((prev) => {
+                                  const current = [
+                                    ...(prev[active.id] ||
+                                      active.quizQuestions.map(() => -1)),
+                                  ];
+                                  current[qIndex] = cIndex;
+                                  return { ...prev, [active.id]: current };
+                                });
+                                // Clear prior review when changing an answer.
+                                setReviews((prev) => {
+                                  if (!prev[active.id]) return prev;
+                                  const next = { ...prev };
+                                  delete next[active.id];
+                                  return next;
+                                });
+                                setError("");
+                                setMessage("");
+                              }}
+                              className="mt-1"
+                            />
+                            <span>{choice}</span>
+                          </label>
+                        ))}
+                      </div>
+                      {item ? (
+                        <div className="mt-3 space-y-2 border-t border-line/70 pt-3 text-sm leading-relaxed">
+                          <p className="text-ink/85">
+                            <span className="font-semibold text-navy">
+                              Your answer:
+                            </span>{" "}
+                            {item.selectedChoice}
+                          </p>
+                          {!item.isCorrect ? (
+                            <>
+                              <p className="text-danger">
+                                <span className="font-semibold">
+                                  Why this is incorrect:
+                                </span>{" "}
+                                {item.incorrectReason}
+                              </p>
+                              <p className="text-navy">
+                                <span className="font-semibold">
+                                  Correct answer:
+                                </span>{" "}
+                                {item.correctChoice}
+                              </p>
+                              <p className="text-ink/85">
+                                <span className="font-semibold">
+                                  Why the correct answer is right:
+                                </span>{" "}
+                                {item.correctReason}
+                              </p>
+                            </>
+                          ) : (
+                            <p className="text-ink/85">
+                              <span className="font-semibold text-navy">
+                                Why this is correct:
+                              </span>{" "}
+                              {item.correctReason}
+                            </p>
+                          )}
+                        </div>
+                      ) : null}
+                    </fieldset>
+                  );
+                })}
               </div>
             )}
+
+            {activeDone && activeReview && activeReview.length > 0 ? (
+              <div className="mt-8 space-y-3 border-t border-line pt-6">
+                <h3 className="font-[family-name:var(--font-display)] text-xl text-navy">
+                  Quiz review
+                </h3>
+                {activeReview.map((item, index) => (
+                  <article
+                    key={item.questionId}
+                    className="rounded-sm border border-teal/40 bg-teal/5 p-4 text-sm"
+                  >
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-teal">
+                      Question {index + 1} · Correct
+                    </p>
+                    <p className="mt-1 font-semibold text-navy">{item.prompt}</p>
+                    <p className="mt-2 text-ink/85">
+                      <span className="font-semibold text-navy">Answer:</span>{" "}
+                      {item.correctChoice}
+                    </p>
+                    <p className="mt-1 text-ink/85">
+                      <span className="font-semibold text-navy">Why:</span>{" "}
+                      {item.correctReason}
+                    </p>
+                  </article>
+                ))}
+              </div>
+            ) : null}
 
             {error && (
               <p className="mt-4 rounded-sm bg-red-50 px-3 py-2 text-sm text-danger">
@@ -249,8 +364,8 @@ export function CourseLearner({
               {activeDone
                 ? "Continue to next module"
                 : saving
-                  ? "Saving…"
-                  : "Complete module & save progress"}
+                  ? "Checking…"
+                  : "Check answers & complete module"}
             </button>
           </>
         ) : (

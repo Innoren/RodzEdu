@@ -22,7 +22,10 @@ export async function POST(request: Request) {
 
   const result = await completeModule({ enrollmentId, moduleId, quizAnswers });
   if ("error" in result) {
-    return NextResponse.json({ error: result.error }, { status: 400 });
+    return NextResponse.json(
+      { error: result.error, review: result.review || [] },
+      { status: 400 },
+    );
   }
 
   return NextResponse.json(result);

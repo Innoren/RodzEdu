@@ -746,13 +746,46 @@ export async function submitExam(
   return { enrollment, score, passed, certificate, review };
 }
 
+function buildQuizAnswerReview(
+  questions: ExamQuestion[],
+  answers: number[],
+): ExamAnswerReview[] {
+  return questions.map((q, i) => {
+    const selectedIndex = Number(answers[i]);
+    const isCorrect = selectedIndex === q.correctIndex;
+    const selectedChoice =
+      selectedIndex >= 0 && selectedIndex < q.choices.length
+        ? q.choices[selectedIndex]
+        : "No answer selected";
+    const correctChoice = q.choices[q.correctIndex] || "Correct answer";
+    const correctReason =
+      q.explanation?.trim() ||
+      `"${correctChoice}" is correct based on this module’s lesson content.`;
+    const incorrectReason = isCorrect
+      ? ""
+      : `"${selectedChoice}" is not correct. Review the module content and choose the option that matches the safety principle being tested.`;
+
+    return {
+      questionId: q.id,
+      prompt: q.prompt,
+      selectedIndex,
+      correctIndex: q.correctIndex,
+      selectedChoice,
+      correctChoice,
+      isCorrect,
+      incorrectReason,
+      correctReason,
+    };
+  });
+}
+
 export async function completeModule(input: {
   enrollmentId: string;
   moduleId: string;
   quizAnswers?: number[];
 }): Promise<
-  | { enrollment: Enrollment; course: Course }
-  | { error: string }
+  | { enrollment: Enrollment; course: Course; review: ExamAnswerReview[] }
+  | { error: string; review?: ExamAnswerReview[] }
 > {
   const db = await ensureDb();
   const enrollment = db.enrollments.find((e) => e.id === input.enrollmentId);
@@ -764,17 +797,24 @@ export async function completeModule(input: {
   const module = course.modules.find((m) => m.id === input.moduleId);
   if (!module) return { error: "Module not found." };
 
+  let review: ExamAnswerReview[] = [];
+
   if (module.quizQuestions.length > 0) {
     const answers = input.quizAnswers || [];
     if (answers.length !== module.quizQuestions.length) {
       return { error: "Answer every quiz question to complete this module." };
     }
-    const allCorrect = module.quizQuestions.every(
-      (q, i) => answers[i] === q.correctIndex,
-    );
+    if (answers.some((value) => Number.isNaN(value) || value < 0)) {
+      return { error: "Answer every quiz question to complete this module." };
+    }
+
+    review = buildQuizAnswerReview(module.quizQuestions, answers);
+    const allCorrect = review.every((item) => item.isCorrect);
     if (!allCorrect) {
       return {
-        error: "One or more quiz answers were incorrect. Review the module and try again.",
+        error:
+          "Some answers were incorrect. Review the feedback below, fix them, and try again. You must answer every question correctly to continue.",
+        review,
       };
     }
   }
@@ -797,7 +837,7 @@ export async function completeModule(input: {
   }
 
   await writeDb(db);
-  return { enrollment, course };
+  return { enrollment, course, review };
 }
 
 export async function getCertificateById(
