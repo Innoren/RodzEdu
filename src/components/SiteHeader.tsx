@@ -1,9 +1,12 @@
 import Image from "next/image";
 import Link from "next/link";
 import { getSessionUser, dashboardPathForRole } from "@/lib/auth";
+import { CartButton } from "@/components/CartButton";
 
 export async function SiteHeader() {
   const user = await getSessionUser();
+  const canCheckout = user?.role === "student";
+  const loginPath = "/login";
 
   return (
     <header className="sticky top-0 z-40 border-b border-line/80 bg-[#f8fbfd]/95 backdrop-blur">
@@ -40,6 +43,7 @@ export async function SiteHeader() {
           </Link>
         </nav>
         <div className="flex items-center gap-2">
+          <CartButton canCheckout={canCheckout} loginPath={loginPath} />
           {user ? (
             <Link href={dashboardPathForRole(user.role)} className="btn btn-navy !px-3 !py-2 text-sm">
               My Account

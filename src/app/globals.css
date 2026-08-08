@@ -383,6 +383,21 @@ a {
   }
 }
 
+.cart-drawer {
+  animation: cartSlideIn 220ms ease both;
+}
+
+@keyframes cartSlideIn {
+  from {
+    transform: translateX(18px);
+    opacity: 0.72;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
 @media print {
   header,
   footer,

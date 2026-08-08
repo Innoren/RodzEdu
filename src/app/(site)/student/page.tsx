@@ -12,6 +12,7 @@ import {
   normalizeMaxExamAttempts,
 } from "@/lib/examAttempts";
 import { formatDate, statusLabel } from "@/lib/format";
+import { ClearPurchasedCartItem } from "@/components/ClearPurchasedCartItem";
 import { PortalNav } from "@/components/PortalNav";
 import { OpenExamButton } from "@/components/OpenExamButton";
 
@@ -49,10 +50,13 @@ export default async function StudentPortalPage({
           </p>
 
           {params.purchased && (
-            <div className="mt-5 rounded-sm border border-teal/30 bg-teal/10 px-4 py-3 text-sm text-navy">
-              Enrollment confirmed for <strong>{params.purchased}</strong>. Your
-              course is ready below.
-            </div>
+            <>
+              <ClearPurchasedCartItem slug={params.purchased} />
+              <div className="mt-5 rounded-sm border border-teal/30 bg-teal/10 px-4 py-3 text-sm text-navy">
+                Enrollment confirmed for <strong>{params.purchased}</strong>. Your
+                course is ready below.
+              </div>
+            </>
           )}
 
           <div className="mt-8 space-y-4">

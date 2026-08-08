@@ -7,6 +7,7 @@ import {
   listEnrollmentsForUser,
 } from "@/lib/db";
 import { formatMoney } from "@/lib/format";
+import { AddToCartButton } from "@/components/AddToCartButton";
 import { CheckoutForm } from "@/components/CheckoutForm";
 
 export default async function BundleDetailPage({
@@ -70,15 +71,29 @@ export default async function BundleDetailPage({
             <Link href="/student" className="btn btn-navy mt-6 w-full">
               Continue in my account
             </Link>
-          ) : user?.role === "student" ? (
-            <CheckoutForm bundleId={bundle.id} className="mt-6" />
           ) : (
-            <Link
-              href={`/login?next=/bundles/${bundle.slug}`}
-              className="btn btn-primary mt-6 w-full"
-            >
-              Sign in to enroll
-            </Link>
+            <div className="mt-6 space-y-3">
+              <AddToCartButton
+                item={{
+                  kind: "bundle",
+                  id: bundle.id,
+                  title: bundle.title,
+                  slug: bundle.slug,
+                  priceCents: bundle.priceCents,
+                  detail: `${courses.length} courses · Discount codes supported`,
+                }}
+              />
+              {user?.role === "student" ? (
+                <CheckoutForm bundleId={bundle.id} />
+              ) : (
+                <Link
+                  href={`/login?next=/bundles/${bundle.slug}`}
+                  className="btn btn-primary w-full"
+                >
+                  Sign in to enroll
+                </Link>
+              )}
+            </div>
           )}
         </aside>
       </div>

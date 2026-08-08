@@ -12,6 +12,7 @@ import {
 } from "@/lib/db";
 import { formatMoney, formatDate } from "@/lib/format";
 import { getModuleOverview } from "@/lib/moduleOverview";
+import { AddToCartButton } from "@/components/AddToCartButton";
 import { CheckoutForm } from "@/components/CheckoutForm";
 import { ReviewForm } from "@/components/ReviewForm";
 import { ContactForm } from "@/components/ContactForm";
@@ -222,15 +223,29 @@ export default async function CourseDetailPage({
             <Link href="/student" className="btn btn-navy mt-6 w-full">
               Continue in my account
             </Link>
-          ) : user?.role === "student" ? (
-            <CheckoutForm courseId={course.id} className="mt-6" />
           ) : (
-            <Link
-              href={`/login?next=/courses/${course.slug}`}
-              className="btn btn-primary mt-6 w-full"
-            >
-              Sign in to enroll
-            </Link>
+            <div className="mt-6 space-y-3">
+              <AddToCartButton
+                item={{
+                  kind: "course",
+                  id: course.id,
+                  title: course.title,
+                  slug: course.slug,
+                  priceCents: course.priceCents,
+                  detail: `${course.credits} CE credits · ${course.category}`,
+                }}
+              />
+              {user?.role === "student" ? (
+                <CheckoutForm courseId={course.id} />
+              ) : (
+                <Link
+                  href={`/login?next=/courses/${course.slug}`}
+                  className="btn btn-primary w-full"
+                >
+                  Sign in to enroll
+                </Link>
+              )}
+            </div>
           )}
         </aside>
       </div>
