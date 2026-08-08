@@ -642,4 +642,5 @@ Before the final exam, review:
       published: true,
     },
   ],
+  fulfilledCheckoutSessions: [],
 };

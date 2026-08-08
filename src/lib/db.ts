@@ -1085,6 +1085,25 @@ export async function redeemDiscountCode(code: string): Promise<void> {
   await writeDb(db);
 }
 
+/** Returns true the first time a Stripe session is claimed for fulfillment. */
+export async function markCheckoutSessionFulfilled(
+  sessionId: string,
+): Promise<boolean> {
+  const db = await ensureDb();
+  if (!Array.isArray(db.fulfilledCheckoutSessions)) {
+    db.fulfilledCheckoutSessions = [];
+  }
+  if (db.fulfilledCheckoutSessions.includes(sessionId)) {
+    return false;
+  }
+  db.fulfilledCheckoutSessions.unshift(sessionId);
+  if (db.fulfilledCheckoutSessions.length > 5000) {
+    db.fulfilledCheckoutSessions = db.fulfilledCheckoutSessions.slice(0, 5000);
+  }
+  await writeDb(db);
+  return true;
+}
+
 export async function enrollUserInCourses(
   userId: string,
   courseIds: string[],

@@ -100,6 +100,9 @@ export function normalizeDatabase(raw: unknown): Database {
     faqs: (db.faqs || []) as FaqItem[],
     testimonials: (db.testimonials || []) as Testimonial[],
     settings: db.settings!,
+    fulfilledCheckoutSessions: Array.isArray(db.fulfilledCheckoutSessions)
+      ? db.fulfilledCheckoutSessions
+      : [],
   };
 }
 

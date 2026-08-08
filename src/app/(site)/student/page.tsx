@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Stripe from "stripe";
 import { requireUser } from "@/lib/auth";
 import {
   getCourseById,
@@ -11,18 +12,76 @@ import {
   examAttemptsRemaining,
   normalizeMaxExamAttempts,
 } from "@/lib/examAttempts";
+import { fulfillPaidCheckoutSession } from "@/lib/fulfillCheckout";
 import { formatDate, statusLabel } from "@/lib/format";
 import { ClearPurchasedCartItem } from "@/components/ClearPurchasedCartItem";
 import { PortalNav } from "@/components/PortalNav";
 import { OpenExamButton } from "@/components/OpenExamButton";
 
+async function confirmStripePurchase(
+  userId: string,
+  sessionId: string,
+): Promise<{ purchasedSlug?: string; paymentError?: string }> {
+  const secret = process.env.STRIPE_SECRET_KEY;
+  if (!secret) {
+    return {
+      paymentError:
+        "Payment confirmation is unavailable. If you were charged, contact support.",
+    };
+  }
+
+  try {
+    const stripe = new Stripe(secret);
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    if (session.metadata?.userId !== userId) {
+      return {
+        paymentError: "This payment does not belong to your account.",
+      };
+    }
+
+    const result = await fulfillPaidCheckoutSession(session);
+    if (result.ok) {
+      return { purchasedSlug: result.successSlug };
+    }
+    if (result.reason === "unpaid" || result.reason === "incomplete") {
+      return {
+        paymentError:
+          "Payment was not completed, so the course was not unlocked.",
+      };
+    }
+    return {
+      paymentError:
+        "We could not confirm this payment. If you were charged, contact support.",
+    };
+  } catch {
+    return {
+      paymentError:
+        "We could not verify this payment yet. Refresh in a moment, or contact support if you were charged.",
+    };
+  }
+}
+
 export default async function StudentPortalPage({
   searchParams,
 }: {
-  searchParams: Promise<{ purchased?: string }>;
+  searchParams: Promise<{ purchased?: string; session_id?: string }>;
 }) {
   const user = await requireUser(["student"]);
   const params = await searchParams;
+
+  let purchasedSlug = params.purchased?.trim() || "";
+  let paymentError = "";
+
+  if (params.session_id) {
+    const confirmation = await confirmStripePurchase(user.id, params.session_id);
+    if (confirmation.purchasedSlug) {
+      purchasedSlug = confirmation.purchasedSlug;
+    }
+    if (confirmation.paymentError) {
+      paymentError = confirmation.paymentError;
+    }
+  }
+
   const [enrollments, certificates] = await Promise.all([
     listEnrollmentsForUser(user.id),
     listCertificatesForUser(user.id),
@@ -49,15 +108,21 @@ export default async function StudentPortalPage({
             and download your certificate automatically.
           </p>
 
-          {params.purchased && (
+          {paymentError ? (
+            <div className="mt-5 rounded-sm border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-navy">
+              {paymentError}
+            </div>
+          ) : null}
+
+          {purchasedSlug && !paymentError ? (
             <>
-              <ClearPurchasedCartItem slug={params.purchased} />
+              <ClearPurchasedCartItem slug={purchasedSlug} />
               <div className="mt-5 rounded-sm border border-teal/30 bg-teal/10 px-4 py-3 text-sm text-navy">
-                Enrollment confirmed for <strong>{params.purchased}</strong>. Your
+                Enrollment confirmed for <strong>{purchasedSlug}</strong>. Your
                 course is ready below.
               </div>
             </>
-          )}
+          ) : null}
 
           <div className="mt-8 space-y-4">
             {rows.length === 0 && (

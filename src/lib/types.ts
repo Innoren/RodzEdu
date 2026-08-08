@@ -190,4 +190,6 @@ export type Database = {
   faqs: FaqItem[];
   testimonials: Testimonial[];
   settings: SiteSettings;
+  /** Stripe Checkout session IDs already fulfilled (idempotent enrollment). */
+  fulfilledCheckoutSessions: string[];
 };

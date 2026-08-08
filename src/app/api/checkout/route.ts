@@ -77,13 +77,10 @@ export async function POST(request: Request) {
     discountCode = discount.code;
   }
 
-  async function finalizeEnrollment() {
-    await enrollUserInCourses(user!.id, courseIds);
-    if (discountCode) await redeemDiscountCode(discountCode);
-  }
-
+  // Free / demo enrollments only — never grant access before a paid Stripe charge.
   if (!secret || priceCents === 0) {
-    await finalizeEnrollment();
+    await enrollUserInCourses(user.id, courseIds);
+    if (discountCode) await redeemDiscountCode(discountCode);
     return NextResponse.redirect(
       new URL(`/student?purchased=${successSlug}`, request.url),
       303,
@@ -93,11 +90,12 @@ export async function POST(request: Request) {
   const stripe = new Stripe(secret);
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
-    success_url: `${origin}/student?purchased=${successSlug}`,
+    success_url: `${origin}/student?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: bundleId
-      ? `${origin}/bundles/${successSlug}`
-      : `${origin}/courses/${successSlug}`,
+      ? `${origin}/bundles/${successSlug}?checkout=cancelled`
+      : `${origin}/courses/${successSlug}?checkout=cancelled`,
     customer_email: user.email,
+    client_reference_id: user.id,
     line_items: [
       {
         quantity: 1,
@@ -117,6 +115,7 @@ export async function POST(request: Request) {
       courseIds: courseIds.join(","),
       bundleId: bundleId || "",
       discountCode: discountCode || "",
+      successSlug,
     },
   });
 
@@ -132,6 +131,7 @@ export async function POST(request: Request) {
     );
   }
 
-  await finalizeEnrollment();
+  // Do NOT enroll here — access is granted only after Stripe confirms payment
+  // (webhook + success-page session verification).
   return NextResponse.redirect(session.url, 303);
 }
