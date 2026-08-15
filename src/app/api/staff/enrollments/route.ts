@@ -8,6 +8,7 @@ import {
   reassignEnrollmentCourse,
   resetEnrollmentModules,
   staffCanManageStudent,
+  unenrollUser,
 } from "@/lib/db";
 
 const STAFF_ROLES = new Set(["teacher", "admin", "ceo"]);
@@ -35,6 +36,22 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: result.error }, { status: 400 });
     }
     return NextResponse.json({ enrollment: result });
+  }
+
+  if (action === "unenroll") {
+    const enrollmentId = String(body.enrollmentId || "");
+    const enrollment = await getEnrollmentById(enrollmentId);
+    if (!enrollment) {
+      return NextResponse.json({ error: "Enrollment not found." }, { status: 404 });
+    }
+    if (!(await staffCanManageStudent(user, enrollment.userId))) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    const result = await unenrollUser(enrollmentId);
+    if ("error" in result) {
+      return NextResponse.json({ error: result.error }, { status: 400 });
+    }
+    return NextResponse.json({ ok: true });
   }
 
   if (action === "reassign") {

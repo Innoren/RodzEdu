@@ -5,6 +5,11 @@ import {
   canAttemptExam,
   normalizeMaxExamAttempts,
 } from "./examAttempts";
+import {
+  hasDatabaseUrl,
+  loadDatabaseFromNeon,
+  saveDatabaseToNeon,
+} from "./neonStore";
 import { applyDiscount, normalizeDatabase, slugify } from "./normalize";
 import { buildQuizAnswerReview } from "./quizReview";
 import { seedData } from "./seed";
@@ -27,8 +32,8 @@ import type {
   User,
 } from "./types";
 
-// Local/dev file fallback. On Vercel, durable state lives in private Blob storage
-// so CEO settings (phone, etc.) survive cold starts.
+// Local/dev file fallback. Prefer Neon (DATABASE_URL) when configured.
+// Blob remains a legacy fallback if Neon is unavailable.
 const DATA_DIR = process.env.VERCEL
   ? path.join("/tmp", "rodzedu-data")
   : path.join(process.cwd(), "data");
@@ -157,13 +162,20 @@ async function persistMigrated(db: Database): Promise<Database> {
 }
 
 /**
- * Load the database. When Blob is configured, always read fresh from Blob so
- * progress writes are not lost to a stale in-memory copy (common on serverless).
+ * Load the database. Prefer Neon Postgres when DATABASE_URL is set.
+ * Fall back to Blob, then local file, then seed data.
  */
 async function ensureDb(): Promise<Database> {
-  const fromBlob = await readDbFromBlob();
-  if (fromBlob) {
-    return persistMigrated(normalizeDatabase(fromBlob));
+  if (hasDatabaseUrl()) {
+    const fromNeon = await loadDatabaseFromNeon();
+    if (fromNeon) {
+      return persistMigrated(fromNeon);
+    }
+  } else {
+    const fromBlob = await readDbFromBlob();
+    if (fromBlob) {
+      return persistMigrated(normalizeDatabase(fromBlob));
+    }
   }
 
   if (globalThis.__rodzeduDb) {
@@ -175,20 +187,22 @@ async function ensureDb(): Promise<Database> {
     const db = normalizeDatabase(fromFile);
     migrateGrowthCollections(db);
     globalThis.__rodzeduDb = db;
-    await writeDbToFile(db);
-    await writeDbToBlob(db);
+    await writeDb(db);
     return db;
   }
 
   const seeded = normalizeDatabase(structuredClone(seedData));
   globalThis.__rodzeduDb = seeded;
-  await writeDbToFile(seeded);
-  await writeDbToBlob(seeded);
+  await writeDb(seeded);
   return seeded;
 }
 
 async function writeDb(db: Database): Promise<void> {
   globalThis.__rodzeduDb = db;
+  if (hasDatabaseUrl()) {
+    await saveDatabaseToNeon(db);
+    return;
+  }
   await Promise.all([writeDbToFile(db), writeDbToBlob(db)]);
 }
 
@@ -197,8 +211,18 @@ export async function getDb(): Promise<Database> {
 }
 
 export async function getSettings(): Promise<SiteSettings> {
-  // Refresh settings from Blob without replacing enrollments/courses in memory —
-  // replacing the whole DB here raced with module-complete writes and wiped progress.
+  // Always read settings from the durable store so CEO edits show up immediately.
+  if (hasDatabaseUrl()) {
+    const fromNeon = await loadDatabaseFromNeon();
+    if (fromNeon) {
+      if (globalThis.__rodzeduDb) {
+        globalThis.__rodzeduDb.settings = fromNeon.settings;
+      } else {
+        globalThis.__rodzeduDb = fromNeon;
+      }
+      return fromNeon.settings;
+    }
+  }
   if (hasBlobStore()) {
     const fromBlob = await readDbFromBlob();
     if (fromBlob) {
@@ -520,6 +544,22 @@ export async function enrollUser(
   db.enrollments.unshift(enrollment);
   await writeDb(db);
   return enrollment;
+}
+
+/** Remove a student enrollment and any certificate earned for it. */
+export async function unenrollUser(
+  enrollmentId: string,
+): Promise<{ ok: true } | { error: string }> {
+  const db = await ensureDb();
+  const enrollment = db.enrollments.find((e) => e.id === enrollmentId);
+  if (!enrollment) return { error: "Enrollment not found." };
+
+  db.enrollments = db.enrollments.filter((e) => e.id !== enrollmentId);
+  db.certificates = db.certificates.filter(
+    (c) => c.enrollmentId !== enrollmentId,
+  );
+  await writeDb(db);
+  return { ok: true };
 }
 
 function clearEnrollmentProgress(enrollment: Enrollment) {

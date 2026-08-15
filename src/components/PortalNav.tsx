@@ -48,13 +48,13 @@ export function PortalNav({
   const links = linksByRole[role];
 
   return (
-    <aside className="panel h-fit p-5 md:sticky md:top-24">
+    <aside className="panel h-fit p-4 md:sticky md:top-24 md:p-5">
       <p className="eyebrow">Signed in</p>
-      <p className="mt-1 font-[family-name:var(--font-display)] text-2xl text-navy">
+      <p className="mt-1 font-[family-name:var(--font-display)] text-xl text-navy md:text-2xl">
         {name}
       </p>
       <p className="mt-1 text-sm capitalize text-muted">{role} portal</p>
-      <nav className="mt-6 flex flex-col gap-1">
+      <nav className="mt-4 grid grid-cols-2 gap-1 md:mt-6 md:flex md:flex-col">
         {links.map((link) => {
           const active = pathname === link.href;
           return (
@@ -72,7 +72,7 @@ export function PortalNav({
           );
         })}
       </nav>
-      <form action="/api/auth/logout" method="post" className="mt-6">
+      <form action="/api/auth/logout" method="post" className="mt-4 md:mt-6">
         <button type="submit" className="btn btn-ghost w-full !py-2 text-sm">
           Log out
         </button>

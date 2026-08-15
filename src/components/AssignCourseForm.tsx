@@ -70,7 +70,7 @@ export function AssignCourseForm({
             required
             value={studentId}
             onChange={(e) => setStudentId(e.target.value)}
-            className="mt-1 w-full border border-line px-3 py-2"
+            className="mt-1 w-full max-w-full border border-line px-3 py-2"
           >
             <option value="">Select student…</option>
             {students.map((student) => (
@@ -86,7 +86,7 @@ export function AssignCourseForm({
             required
             value={courseId}
             onChange={(e) => setCourseId(e.target.value)}
-            className="mt-1 w-full border border-line px-3 py-2"
+            className="mt-1 w-full max-w-full border border-line px-3 py-2"
           >
             <option value="">Select course…</option>
             {courses.map((course) => (
@@ -96,7 +96,11 @@ export function AssignCourseForm({
             ))}
           </select>
         </label>
-        <button type="submit" disabled={saving} className="btn btn-primary">
+        <button
+          type="submit"
+          disabled={saving}
+          className="btn btn-primary w-full md:w-auto"
+        >
           {saving ? "Assigning…" : "Assign course"}
         </button>
       </div>
